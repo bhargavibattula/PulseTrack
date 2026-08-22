@@ -1,0 +1,3 @@
+/* NativeWind v2 does not require a global stylesheet import, but this file is
+   kept for compatibility with tooling that expects one (and for a future
+   NativeWind v4 upgrade path). */
