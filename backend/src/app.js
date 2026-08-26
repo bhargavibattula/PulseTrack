@@ -20,6 +20,7 @@ const labRoutes = require('./routes/labRoutes');
 const yieldRoutes = require('./routes/yieldRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use('/api/v1/lab-tests', labRoutes);
 app.use('/api/v1/yield', yieldRoutes);
 app.use('/api/v1/audit-logs', auditRoutes);
 app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
 
 // 404
 app.use((req, res, next) => next(Errors.notFound(`No route for ${req.method} ${req.originalUrl}`)));

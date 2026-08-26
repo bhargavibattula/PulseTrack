@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Silo = require('../models/Silo');
 const SiloMovement = require('../models/SiloMovement');
 const { creditPool, debitPool } = require('../services/inventoryService');
@@ -92,54 +93,84 @@ async function updateSiloStatus(req, res, next) {
 }
 
 async function recordMovement(req, res, next) {
+  const session = await mongoose.startSession();
   try {
     const { fromSiloId, toSiloId, materialType, quantityKg, shift } = req.body;
     if (!materialType || !quantityKg) throw Errors.validation('materialType and quantityKg are required.');
 
+    // Derive pool type from material type for inventory sync.
+    const poolTypeMap = {
+      RAW_TOOR: 'RAW',
+      DRIED_TOOR: 'RAW',
+      GOTA: 'GOTA',
+      FINISHED_DAL: 'FINISHED',
+    };
+    const poolType = poolTypeMap[materialType] || 'RAW';
+
     let fromSilo = null;
-    if (fromSiloId) {
-      fromSilo = await Silo.findById(fromSiloId);
-      if (!fromSilo) throw Errors.notFound('Source silo not found.');
-      if (req.user.role !== 'MANAGER' && String(fromSilo.unit) !== String(req.user.unit)) {
-        throw Errors.unauthorizedUnit();
-      }
-      if (fromSilo.currentQuantityKg < quantityKg) {
-        throw Errors.insufficientInventory(fromSilo.currentQuantityKg, quantityKg);
-      }
-      fromSilo.currentQuantityKg -= quantityKg;
-      await fromSilo.save();
-    }
-
     let toSilo = null;
-    if (toSiloId) {
-      toSilo = await Silo.findById(toSiloId);
-      if (!toSilo) throw Errors.notFound('Destination silo not found.');
-      toSilo.currentQuantityKg += quantityKg;
-      toSilo.materialType = materialType;
-      await toSilo.save();
-    }
+    let movement;
 
-    const movement = await SiloMovement.create({
-      fromSilo: fromSiloId || null,
-      toSilo: toSiloId || null,
-      materialType,
-      quantityKg,
-      shift,
-      operator: req.user.id,
-    });
+    await session.withTransaction(async () => {
+      if (fromSiloId) {
+        fromSilo = await Silo.findById(fromSiloId).session(session);
+        if (!fromSilo) throw Errors.notFound('Source silo not found.');
+        if (req.user.role !== 'MANAGER' && String(fromSilo.unit) !== String(req.user.unit)) {
+          throw Errors.unauthorizedUnit();
+        }
+        if (fromSilo.currentQuantityKg < quantityKg) {
+          throw Errors.insufficientInventory(fromSilo.currentQuantityKg, quantityKg);
+        }
+        fromSilo.currentQuantityKg -= quantityKg;
+        await fromSilo.save({ session });
+      }
 
-    await writeAudit({
-      userId: req.user.id,
-      action: 'INVENTORY_TRANSFERRED',
-      entityType: 'SiloMovement',
-      entityId: movement._id,
-      newValue: movement.toObject(),
-      unitId: (fromSilo || toSilo)?.unit,
+      if (toSiloId) {
+        toSilo = await Silo.findById(toSiloId).session(session);
+        if (!toSilo) throw Errors.notFound('Destination silo not found.');
+        toSilo.currentQuantityKg += quantityKg;
+        toSilo.materialType = materialType;
+        await toSilo.save({ session });
+      }
+
+      // Sync inventory pools when material moves between units via silos,
+      // or when material enters/leaves the silo system.
+      const sourceUnitId = fromSilo?.unit;
+      const destUnitId = toSilo?.unit;
+      if (sourceUnitId && destUnitId && String(sourceUnitId) !== String(destUnitId)) {
+        // Cross-unit silo movement: debit source unit pool, credit dest unit pool
+        await debitPool({ unitId: sourceUnitId, poolType, quantityKg }, session);
+        await creditPool({ unitId: destUnitId, poolType, quantityKg }, session);
+      }
+
+      const docs = await SiloMovement.create(
+        [{
+          fromSilo: fromSiloId || null,
+          toSilo: toSiloId || null,
+          materialType,
+          quantityKg,
+          shift,
+          operator: req.user.id,
+        }],
+        { session }
+      );
+      movement = docs[0];
+
+      await writeAudit({
+        userId: req.user.id,
+        action: 'INVENTORY_TRANSFERRED',
+        entityType: 'SiloMovement',
+        entityId: movement._id,
+        newValue: movement.toObject(),
+        unitId: (fromSilo || toSilo)?.unit,
+      }, session);
     });
 
     return created(res, movement);
   } catch (err) {
     next(err);
+  } finally {
+    session.endSession();
   }
 }
 
