@@ -147,11 +147,11 @@ export default function SupervisorDashboard({ navigation }: any) {
           <View className="flex-row flex-wrap justify-between">
             {data?.stock?.length > 0 ? (
               data.stock.map((s: any, index: number) => (
-                <View key={index} className="bg-white w-[48%] p-4 rounded-2xl mb-3 shadow-sm border border-stone-200">
-                  <Text className="text-stone-400 text-[10px] uppercase font-sansBold tracking-wider mb-1">
-                    {s.materialCode || s.materialId?.substring(0,6)}
+                <View key={index} className="bg-white w-[48%] p-3.5 rounded-2xl mb-3 shadow-sm border border-stone-200">
+                  <Text className="text-stone-400 text-[10px] uppercase font-sansBold tracking-wider mb-1" numberOfLines={1}>
+                    {s.materialCode || s.materialName || s.materialId?.substring(0,6)}
                   </Text>
-                  <Text className="text-2xl font-displayBold text-amber-600">
+                  <Text className="text-xl font-displayBold text-amber-600" numberOfLines={1} adjustsFontSizeToFit>
                     {s.netQuantity.toLocaleString()} <Text className="text-xs font-sans text-stone-400">{s.unitOfMeasure || 'kg'}</Text>
                   </Text>
                 </View>
