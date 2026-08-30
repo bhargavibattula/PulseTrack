@@ -50,6 +50,24 @@ async function listSilos(req, res, next) {
   }
 }
 
+async function createSilo(req, res, next) {
+  try {
+    const { unitId, name, code, capacityKg } = req.body;
+    const unit = req.user.role === 'MANAGER' ? unitId : req.user.unit;
+    const silo = await Location.create({
+      unit,
+      name,
+      code: code || name.toUpperCase().replace(/\s+/g, '_'),
+      type: 'SILO',
+      capacityKg: capacityKg || 50000,
+      isActive: true
+    });
+    return created(res, silo);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getSilo(req, res, next) {
   try {
     const silo = await Location.findById(req.params.id).populate('unit');

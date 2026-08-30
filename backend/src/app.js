@@ -19,6 +19,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const productionRoutes = require('./routes/productionRoutes');
 const stockRoutes = require('./routes/stockRoutes');
 const masterDataRoutes = require('./routes/masterDataRoutes');
+const siloRoutes = require('./routes/siloRoutes');
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/v1/configuration', configRoutes);
 app.use('/api/v1/master-data', masterDataRoutes);
 app.use('/api/v1/production', productionRoutes);
 app.use('/api/v1/stock', stockRoutes);
+app.use('/api/v1/silos', siloRoutes);
 
 app.use('/api/v1/shifts', shiftRoutes);
 app.use('/api/v1/transfers', transferRoutes);
