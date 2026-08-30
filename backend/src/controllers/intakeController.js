@@ -63,8 +63,29 @@ async function createIntake(req, res, next) {
       operator: req.user.id,
     });
 
-    // Credits the Raw pool for the unit (SRS §7 -> §21 running pool).
-    await creditPool({ unitId: unit, poolType: 'RAW', quantityKg: adjustedNetWeightKg });
+    // Record stock transaction in raw silo
+    const Location = require('../models/Location');
+    const Material = require('../models/Material');
+    const { recordStockTransactions } = require('../services/stockEngine');
+
+    const [rawLoc, rawMat] = await Promise.all([
+      Location.findOne({ unit, type: 'SILO', isActive: true }),
+      Material.findOne({ code: 'RAW_TOOR', isActive: true })
+    ]);
+
+    if (rawLoc && rawMat) {
+      await recordStockTransactions([{
+        unit,
+        location: rawLoc._id,
+        material: rawMat._id,
+        direction: 'IN',
+        quantity: adjustedNetWeightKg,
+        transactionType: 'OPERATOR_MOVEMENT',
+        referenceType: 'Intake',
+        referenceId: intake._id,
+        createdBy: req.user.id
+      }]);
+    }
 
     await writeAudit({
       userId: req.user.id,

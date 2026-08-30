@@ -190,6 +190,65 @@ async function seed() {
     createdBy: createdUsers[1]._id
   });
 
+  console.log('[seed] Seeding sample Intake records...');
+  const Intake = require('../models/Intake');
+  const AuditLog = require('../models/AuditLog');
+
+  await Intake.insertMany([
+    {
+      unit: units[0]._id,
+      date: new Date(Date.now() - 36 * 3600 * 1000),
+      vehicleNumber: 'MH-12-AB-4501',
+      supplierReference: 'SUPPLIER-01',
+      grossWeightKg: 46500,
+      moisturePct: 13,
+      targetMoisturePctUsed: 10,
+      moistureDeductionKg: 1395,
+      adjustedNetWeightKg: 45105,
+      operator: createdUsers[1]._id
+    },
+    {
+      unit: units[0]._id,
+      date: new Date(Date.now() - 12 * 3600 * 1000),
+      vehicleNumber: 'KA-04-E-8822',
+      supplierReference: 'SUPPLIER-02',
+      grossWeightKg: 28000,
+      moisturePct: 11,
+      targetMoisturePctUsed: 10,
+      moistureDeductionKg: 280,
+      adjustedNetWeightKg: 27720,
+      operator: createdUsers[1]._id
+    }
+  ]);
+
+  console.log('[seed] Seeding sample Audit Logs...');
+  await AuditLog.insertMany([
+    {
+      user: createdUsers[1]._id,
+      action: 'INTAKE_CREATED',
+      entityType: 'Intake',
+      entityId: new mongoose.Types.ObjectId(),
+      unit: units[0]._id,
+      createdAt: new Date(Date.now() - 12 * 3600 * 1000)
+    },
+    {
+      user: createdUsers[0]._id,
+      action: 'PRODUCTION_TRANSFER_CREATED',
+      entityType: 'ProductionTransfer',
+      entityId: new mongoose.Types.ObjectId(),
+      unit: units[0]._id,
+      createdAt: new Date(Date.now() - 6 * 3600 * 1000)
+    },
+    {
+      user: createdUsers[0]._id,
+      action: 'STOCK_ADJUSTMENT',
+      entityType: 'StockAdjustment',
+      entityId: new mongoose.Types.ObjectId(),
+      unit: units[0]._id,
+      createdAt: new Date(Date.now() - 2 * 3600 * 1000)
+    }
+  ]);
+
   console.log('\n=========================================');
   console.log('✅ SEED COMPLETED SUCCESSFULLY!');
   console.log('=========================================');

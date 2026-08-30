@@ -40,10 +40,21 @@ exports.getSupervisorDashboard = async (req, res, next) => {
       }}
     ]);
 
-    const stock = stockAgg.map(s => ({
-      materialId: s._id,
-      netQuantity: s.totalIn - s.totalOut
-    })).filter(s => s.netQuantity > 0);
+    const Material = require('../models/Material');
+    const materials = await Material.find().lean();
+    const matMap = new Map();
+    materials.forEach(m => matMap.set(String(m._id), m));
+
+    const stock = stockAgg.map(s => {
+      const mat = matMap.get(String(s._id));
+      return {
+        materialId: s._id,
+        materialCode: mat?.code || 'UNKNOWN',
+        materialName: mat?.name || 'Material',
+        unitOfMeasure: mat?.unitOfMeasure || 'KG',
+        netQuantity: Math.max(0, s.totalIn - s.totalOut)
+      };
+    }).filter(s => s.netQuantity > 0);
 
     return ok(res, {
       stock,
@@ -81,10 +92,21 @@ exports.getOperatorDashboard = async (req, res, next) => {
       }}
     ]);
 
-    const operationalStock = stockAgg.map(s => ({
-      materialId: s._id,
-      netQuantity: s.totalIn - s.totalOut
-    })).filter(s => s.netQuantity > 0);
+    const Material = require('../models/Material');
+    const materials = await Material.find().lean();
+    const matMap = new Map();
+    materials.forEach(m => matMap.set(String(m._id), m));
+
+    const operationalStock = stockAgg.map(s => {
+      const mat = matMap.get(String(s._id));
+      return {
+        materialId: s._id,
+        materialCode: mat?.code || 'UNKNOWN',
+        materialName: mat?.name || 'Material',
+        unitOfMeasure: mat?.unitOfMeasure || 'KG',
+        netQuantity: Math.max(0, s.totalIn - s.totalOut)
+      };
+    }).filter(s => s.netQuantity > 0);
 
     return ok(res, {
       operationalStock,

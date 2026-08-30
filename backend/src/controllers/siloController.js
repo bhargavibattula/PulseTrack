@@ -1,37 +1,50 @@
 const mongoose = require('mongoose');
-const Silo = require('../models/Silo');
-const SiloMovement = require('../models/SiloMovement');
-// Removed inventoryService require
+const Location = require('../models/Location');
+const StockTransaction = require('../models/StockTransaction');
 const { writeAudit } = require('../services/auditService');
 const { ok, created } = require('../utils/response');
 const { Errors } = require('../utils/errors');
 
-const { SILO_STATUSES } = Silo;
-
-// Allowed transitions per design doc Section G.1 (SRS §13).
-const ALLOWED_TRANSITIONS = {
-  EMPTY: ['FILLING'],
-  FILLING: ['FULL_SITTING'],
-  FULL_SITTING: ['EMPTYING'],
-  EMPTYING: ['EMPTY'],
-};
-
 async function listSilos(req, res, next) {
   try {
-    const filter = req.user.role === 'MANAGER' ? {} : { unit: req.user.unit };
+    const filter = req.user.role === 'MANAGER' ? { isActive: true } : { unit: req.user.unit, isActive: true };
     if (req.query.unit_id && req.user.role === 'MANAGER') filter.unit = req.query.unit_id;
-    const silos = await Silo.find(filter).populate('unit').sort({ name: 1 });
-    return ok(res, silos);
-  } catch (err) {
-    next(err);
-  }
-}
+    
+    const locations = await Location.find(filter).populate('unit').sort({ name: 1 }).lean();
 
-async function createSilo(req, res, next) {
-  try {
-    const { unitId, name, capacityKg } = req.body;
-    const silo = await Silo.create({ unit: unitId, name, capacityKg: capacityKg ?? null });
-    return created(res, silo);
+    // Query aggregate balances for each location
+    const stockAgg = await StockTransaction.aggregate([
+      { $match: { location: { $in: locations.map(l => l._id) } } },
+      { $group: {
+          _id: '$location',
+          totalIn: { $sum: { $cond: [{ $eq: ['$direction', 'IN'] }, '$quantity', 0] } },
+          totalOut: { $sum: { $cond: [{ $eq: ['$direction', 'OUT'] }, '$quantity', 0] } }
+      }}
+    ]);
+
+    const stockMap = new Map();
+    stockAgg.forEach(s => {
+      stockMap.set(String(s._id), Math.max(0, s.totalIn - s.totalOut));
+    });
+
+    const silosWithStock = locations.map(loc => {
+      const currentQty = stockMap.get(String(loc._id)) || 0;
+      const capacity = loc.capacityKg || 50000;
+      const fillPercentage = Math.min(100, Math.round((currentQty / capacity) * 100));
+      
+      let status = 'EMPTY';
+      if (fillPercentage >= 90) status = 'FULL';
+      else if (fillPercentage > 0) status = 'FILLING';
+
+      return {
+        ...loc,
+        currentQuantityKg: currentQty,
+        fillPercentage,
+        status
+      };
+    });
+
+    return ok(res, silosWithStock);
   } catch (err) {
     next(err);
   }
@@ -39,16 +52,15 @@ async function createSilo(req, res, next) {
 
 async function getSilo(req, res, next) {
   try {
-    const silo = await Silo.findById(req.params.id).populate('unit');
-    if (!silo) throw Errors.notFound('Silo not found.');
-    if (req.user.role !== 'MANAGER' && String(silo.unit._id) !== String(req.user.unit)) {
-      throw Errors.unauthorizedUnit();
-    }
-    const movements = await SiloMovement.find({ $or: [{ fromSilo: silo._id }, { toSilo: silo._id }] })
-      .sort({ createdAt: -1 })
+    const silo = await Location.findById(req.params.id).populate('unit');
+    if (!silo) throw Errors.notFound('Silo/Location not found.');
+    
+    const transactions = await StockTransaction.find({ location: silo._id })
+      .sort({ created_at: -1 })
       .limit(50)
-      .populate('operator');
-    return ok(res, { silo, movements });
+      .populate('createdBy material');
+      
+    return ok(res, { silo, transactions });
   } catch (err) {
     next(err);
   }
