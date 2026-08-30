@@ -105,29 +105,30 @@ export default function ProductionTransferScreen({ navigation }: any) {
   if (fetchingMasters) {
     return (
       <View className="flex-1 items-center justify-center bg-stone-50">
-        <ActivityIndicator size="large" color="#0f766e" />
+        <ActivityIndicator size="large" color="#F59E0B" />
         <Text className="text-stone-500 mt-2 font-sansMedium">Loading master data...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-stone-50 p-4">
-      <View className="bg-white p-5 rounded-2xl shadow-sm border border-stone-200 mb-6">
-        <Text className="text-2xl font-bold mb-4 text-stone-900">New Production Transfer</Text>
+    <ScrollView className="flex-1 bg-stone-50 p-6">
+      <View className="bg-white p-6 rounded-[24px] shadow-sm border border-stone-200 mb-6">
+        <Text className="text-2xl font-displayExtraBold mb-1 text-stone-900">New Production Transfer</Text>
+        <Text className="text-stone-500 mb-6 font-sans text-sm">Enter processing quantity and source location</Text>
         
         <ErrorBanner message={error} />
 
         {/* Process Selection */}
-        <Text className="text-stone-600 font-sansMedium text-sm mb-2">Select Process / Pass</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4 flex-row space-x-2">
+        <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Process / Pass</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5 flex-row space-x-2">
           {processes.map((p) => (
             <TouchableOpacity
               key={p._id}
               onPress={() => setSelectedProcess(p._id)}
-              className={`px-4 py-2.5 rounded-xl border ${selectedProcess === p._id ? 'bg-teal-700 border-teal-700' : 'bg-stone-100 border-stone-200'}`}
+              className={`px-4 py-2.5 rounded-2xl border ${selectedProcess === p._id ? 'bg-amber-500 border-amber-500' : 'bg-stone-100 border-stone-200'}`}
             >
-              <Text className={`font-bold text-xs ${selectedProcess === p._id ? 'text-white' : 'text-stone-700'}`}>
+              <Text className={`font-sansBold text-xs ${selectedProcess === p._id ? 'text-white' : 'text-stone-700'}`}>
                 {p.name}
               </Text>
             </TouchableOpacity>
@@ -135,15 +136,15 @@ export default function ProductionTransferScreen({ navigation }: any) {
         </ScrollView>
 
         {/* Source Location Selection */}
-        <Text className="text-stone-600 font-sansMedium text-sm mb-2">Source Location / Silo</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4 flex-row space-x-2">
+        <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Source Silo / Location</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5 flex-row space-x-2">
           {locations.map((loc) => (
             <TouchableOpacity
               key={loc._id}
               onPress={() => setSelectedLocation(loc._id)}
-              className={`px-4 py-2.5 rounded-xl border ${selectedLocation === loc._id ? 'bg-amber-600 border-amber-600' : 'bg-stone-100 border-stone-200'}`}
+              className={`px-4 py-2.5 rounded-2xl border ${selectedLocation === loc._id ? 'bg-stone-900 border-stone-900' : 'bg-stone-100 border-stone-200'}`}
             >
-              <Text className={`font-bold text-xs ${selectedLocation === loc._id ? 'text-white' : 'text-stone-700'}`}>
+              <Text className={`font-sansBold text-xs ${selectedLocation === loc._id ? 'text-white' : 'text-stone-700'}`}>
                 {loc.name} ({loc.code})
               </Text>
             </TouchableOpacity>
@@ -151,16 +152,16 @@ export default function ProductionTransferScreen({ navigation }: any) {
         </ScrollView>
 
         {/* Shift Selection */}
-        <Text className="text-stone-600 font-sansMedium text-sm mb-2">Shift</Text>
-        <View className="flex-row space-x-2 mb-4">
+        <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Shift</Text>
+        <View className="flex-row space-x-2 mb-5">
           {shifts.map((s) => (
             <TouchableOpacity
               key={s._id}
               onPress={() => setSelectedShift(s._id)}
-              className={`flex-1 py-2.5 rounded-xl border items-center ${selectedShift === s._id ? 'bg-stone-800 border-stone-800' : 'bg-stone-100 border-stone-200'}`}
+              className={`flex-1 py-2.5 rounded-2xl border items-center ${selectedShift === s._id ? 'bg-amber-500 border-amber-500' : 'bg-stone-100 border-stone-200'}`}
             >
-              <Text className={`font-bold text-xs ${selectedShift === s._id ? 'text-white' : 'text-stone-700'}`}>
-                {s.name}
+              <Text className={`font-sansBold text-xs ${selectedShift === s._id ? 'text-white' : 'text-stone-700'}`}>
+                {s.name.split(' ')[0]}
               </Text>
             </TouchableOpacity>
           ))}

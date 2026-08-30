@@ -132,24 +132,25 @@ export default function YieldScreen({ route, navigation }: any) {
   if (fetching) {
     return (
       <View className="flex-1 items-center justify-center bg-stone-50">
-        <ActivityIndicator size="large" color="#0f766e" />
+        <ActivityIndicator size="large" color="#F59E0B" />
         <Text className="text-stone-500 mt-2 font-sansMedium">Loading pending lab entries...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-stone-50 p-4">
-      <View className="bg-white p-5 rounded-2xl shadow-sm border border-stone-200 mb-6">
-        <Text className="text-2xl font-bold mb-4 text-stone-900">Submit Laboratory Yield</Text>
+    <ScrollView className="flex-1 bg-stone-50 p-6">
+      <View className="bg-white p-6 rounded-[24px] shadow-sm border border-stone-200 mb-6">
+        <Text className="text-2xl font-displayExtraBold mb-1 text-stone-900">Submit Laboratory Yield</Text>
+        <Text className="text-stone-500 mb-6 font-sans text-sm">Enter output percentages and destination silos</Text>
         
         <ErrorBanner message={error} />
 
         {/* Transfer Selection */}
-        <Text className="text-stone-600 font-sansMedium text-sm mb-2">Select Pending Production Transfer</Text>
+        <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Pending Production Transfer</Text>
         {pendingTransfers.length === 0 ? (
-          <View className="bg-amber-50 p-4 rounded-xl border border-amber-200 mb-4">
-            <Text className="text-amber-800 text-sm font-medium">No pending transfers awaiting lab yield.</Text>
+          <View className="bg-stone-100 p-4 rounded-2xl border border-stone-200 mb-4">
+            <Text className="text-stone-500 text-sm font-sans">No pending transfers awaiting lab yield.</Text>
           </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4 flex-row space-x-2">
@@ -157,12 +158,12 @@ export default function YieldScreen({ route, navigation }: any) {
               <TouchableOpacity
                 key={t._id}
                 onPress={() => setSelectedTransfer(t)}
-                className={`p-3 rounded-xl border ${selectedTransfer?._id === t._id ? 'bg-teal-800 border-teal-800' : 'bg-stone-100 border-stone-200'}`}
+                className={`p-3.5 rounded-2xl border ${selectedTransfer?._id === t._id ? 'bg-amber-500 border-amber-500' : 'bg-stone-100 border-stone-200'}`}
               >
-                <Text className={`font-bold text-xs ${selectedTransfer?._id === t._id ? 'text-white' : 'text-stone-800'}`}>
-                  Ref: {t._id.substring(0, 6)} ({t.processingQty} kg)
+                <Text className={`font-sansBold text-xs ${selectedTransfer?._id === t._id ? 'text-white' : 'text-stone-900'}`}>
+                  Ref: {t._id.substring(0, 6)} ({t.processingQty.toLocaleString()} kg)
                 </Text>
-                <Text className={`text-[10px] mt-1 ${selectedTransfer?._id === t._id ? 'text-teal-200' : 'text-stone-500'}`}>
+                <Text className={`text-[11px] mt-1 font-sans ${selectedTransfer?._id === t._id ? 'text-amber-100' : 'text-stone-500'}`}>
                   {t.process?.name} • Silo: {t.sourceLocation?.code || 'N/A'}
                 </Text>
               </TouchableOpacity>
@@ -171,21 +172,21 @@ export default function YieldScreen({ route, navigation }: any) {
         )}
 
         {selectedTransfer && (
-          <View className="bg-stone-50 p-3 rounded-xl mb-4 border border-stone-200">
-            <Text className="text-xs text-stone-600 font-medium">
-              Physical Processing Qty: <Text className="font-bold text-stone-900">{selectedTransfer.processingQty} kg</Text>
+          <View className="bg-amber-500/10 p-4 rounded-2xl mb-4 border border-amber-500/20">
+            <Text className="text-xs text-stone-700 font-sans">
+              Processing Weight: <Text className="font-sansBold text-stone-900">{selectedTransfer.processingQty.toLocaleString()} kg</Text>
             </Text>
             {selectedTransfer.inputMoisture != null && (
-              <Text className="text-xs text-stone-600 font-medium mt-1">
-                Moisture: {selectedTransfer.inputMoisture}% → Adjusted Input: <Text className="font-bold text-stone-900">{selectedTransfer.adjustedInputQty} kg</Text>
+              <Text className="text-xs text-stone-700 font-sans mt-1">
+                Moisture: {selectedTransfer.inputMoisture}% (10% Std) → Adjusted: <Text className="font-sansBold text-amber-700">{selectedTransfer.adjustedInputQty.toLocaleString()} kg</Text>
               </Text>
             )}
           </View>
         )}
 
         {/* Output 1: Main Material */}
-        <View className="p-3 bg-stone-50 rounded-xl mb-3 border border-stone-200">
-          <Text className="font-bold text-sm text-stone-800 mb-2">1. Main Material (e.g. Silo 8)</Text>
+        <View className="p-4 bg-stone-50 rounded-2xl mb-3 border border-stone-200">
+          <Text className="font-sansBold text-sm text-stone-900 mb-2">1. Main Material (Grade A)</Text>
           <NumericInput
             label="Main Yield (%)"
             suffix="%"
@@ -196,8 +197,8 @@ export default function YieldScreen({ route, navigation }: any) {
         </View>
 
         {/* Output 2: Split */}
-        <View className="p-3 bg-stone-50 rounded-xl mb-3 border border-stone-200">
-          <Text className="font-bold text-sm text-stone-800 mb-2">2. Split Dal</Text>
+        <View className="p-4 bg-stone-50 rounded-2xl mb-3 border border-stone-200">
+          <Text className="font-sansBold text-sm text-stone-900 mb-2">2. Split / Broken Dal</Text>
           <NumericInput
             label="Split Yield (%)"
             suffix="%"
@@ -208,8 +209,8 @@ export default function YieldScreen({ route, navigation }: any) {
         </View>
 
         {/* Output 3: Husk */}
-        <View className="p-3 bg-stone-50 rounded-xl mb-3 border border-stone-200">
-          <Text className="font-bold text-sm text-stone-800 mb-2">3. Husk / Byproduct</Text>
+        <View className="p-4 bg-stone-50 rounded-2xl mb-3 border border-stone-200">
+          <Text className="font-sansBold text-sm text-stone-900 mb-2">3. Husk / Byproduct</Text>
           <NumericInput
             label="Husk Yield (%)"
             suffix="%"
@@ -220,12 +221,12 @@ export default function YieldScreen({ route, navigation }: any) {
         </View>
 
         {/* Total Yield Indicator */}
-        <View className={`p-3 rounded-xl mb-4 flex-row justify-between items-center ${Math.abs(totalYield - 100) < 0.01 ? 'bg-emerald-50 border border-emerald-300' : 'bg-red-50 border border-red-300'}`}>
-          <Text className={`font-bold text-sm ${Math.abs(totalYield - 100) < 0.01 ? 'text-emerald-800' : 'text-red-800'}`}>
+        <View className={`p-4 rounded-2xl mb-4 flex-row justify-between items-center ${Math.abs(totalYield - 100) < 0.01 ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-red-50 border border-red-200'}`}>
+          <Text className={`font-sansBold text-sm ${Math.abs(totalYield - 100) < 0.01 ? 'text-amber-800' : 'text-red-800'}`}>
             Total Yield: {totalYield}%
           </Text>
-          <Text className={`text-xs ${Math.abs(totalYield - 100) < 0.01 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}`}>
-            {Math.abs(totalYield - 100) < 0.01 ? '✓ Valid (100%)' : 'Must equal 100%'}
+          <Text className={`text-xs font-sansBold ${Math.abs(totalYield - 100) < 0.01 ? 'text-amber-600' : 'text-red-600'}`}>
+            {Math.abs(totalYield - 100) < 0.01 ? '✓ Exactly 100%' : 'Must equal 100%'}
           </Text>
         </View>
 
