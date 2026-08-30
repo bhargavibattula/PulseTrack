@@ -192,6 +192,47 @@ export default function SupervisorDashboard({ navigation }: any) {
           })}
         </View>
 
+        {/* Recent Audit Logs Stream */}
+        <View>
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-[13px] font-sansBold text-stone-500 uppercase tracking-wide">
+              Recent Audit Logs
+            </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('AuditLogs')}>
+              <Text className="text-amber-600 font-sansBold text-xs">View All Logs →</Text>
+            </TouchableOpacity>
+          </View>
+
+          {data?.recentAuditLogs?.length > 0 ? (
+            data.recentAuditLogs.map((log: any) => (
+              <View 
+                key={log._id} 
+                className="bg-white p-4 rounded-2xl mb-3 shadow-sm border border-stone-200"
+              >
+                <View className="flex-row justify-between items-center mb-1">
+                  <View className="bg-amber-500/10 px-2.5 py-0.5 rounded-md">
+                    <Text className="font-sansBold text-amber-800 text-[10px]">{log.action}</Text>
+                  </View>
+                  <Text className="text-stone-400 font-sans text-[11px]">
+                    {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(log.createdAt).toLocaleDateString()}
+                  </Text>
+                </View>
+
+                <Text className="font-sansBold text-stone-900 text-sm mt-1">
+                  By: {log.user?.name || 'System'} ({log.user?.role || 'USER'})
+                </Text>
+                <Text className="text-stone-400 font-sans text-xs mt-0.5">
+                  Entity: {log.entityType} • Ref: {String(log.entityId || log._id).substring(0, 8)}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <View className="bg-white border border-stone-200 p-4 rounded-2xl items-center">
+              <Text className="text-stone-400 font-sans text-sm">No recent audit logs.</Text>
+            </View>
+          )}
+        </View>
+
         {/* Adjustments */}
         <View className="mt-2 mb-8">
           <PrimaryButton 

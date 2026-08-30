@@ -56,11 +56,20 @@ exports.getSupervisorDashboard = async (req, res, next) => {
       };
     }).filter(s => s.netQuantity > 0);
 
+    // 5. Recent Audit Logs
+    const AuditLog = require('../models/AuditLog');
+    const recentAuditLogs = await AuditLog.find({ unit: unitId })
+      .populate('user')
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
+
     return ok(res, {
       stock,
       siloStatus: locations,
       recentAdjustments,
-      exceptions: pendingYields
+      exceptions: pendingYields,
+      recentAuditLogs
     });
   } catch (error) {
     next(error);
