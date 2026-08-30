@@ -72,28 +72,42 @@ export default function SupervisorDashboard({ navigation }: any) {
 
       <View className="p-6 space-y-6">
 
-        {/* Quick Navigation Shortcuts */}
-        <View className="flex-row space-x-3 mb-2">
+        {/* Quick Navigation Shortcuts Grid */}
+        <View className="flex-row flex-wrap justify-between mb-2">
           <TouchableOpacity 
             onPress={() => navigation.navigate('StockLedger')}
-            className="flex-1 bg-amber-500 p-4 rounded-2xl shadow-sm flex-row items-center justify-between"
+            className="w-[48%] bg-amber-500 p-4 rounded-2xl shadow-sm mb-3"
           >
-            <View>
-              <Text className="text-white font-sansBold text-base">Stock Ledger</Text>
-              <Text className="text-amber-100 text-xs font-sans">Audit History</Text>
-            </View>
             <Feather name="book-open" size={20} color="#fff" />
+            <Text className="text-white font-sansBold text-base mt-2">Stock Ledger</Text>
+            <Text className="text-amber-100 text-xs font-sans mt-0.5">Audit History</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             onPress={() => navigation.navigate('StockAdjustment')}
-            className="flex-1 bg-white border border-stone-200 p-4 rounded-2xl shadow-sm flex-row items-center justify-between"
+            className="w-[48%] bg-white border border-stone-200 p-4 rounded-2xl shadow-sm mb-3"
           >
-            <View>
-              <Text className="text-stone-800 font-sansBold text-base">Adjustment</Text>
-              <Text className="text-stone-400 text-xs font-sans">Manual Fix</Text>
-            </View>
             <Feather name="edit-3" size={20} color="#F59E0B" />
+            <Text className="text-stone-800 font-sansBold text-base mt-2">Adjustment</Text>
+            <Text className="text-stone-400 text-xs font-sans mt-0.5">Manual Fix</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('AuditLogs')}
+            className="w-[48%] bg-white border border-stone-200 p-4 rounded-2xl shadow-sm mb-3"
+          >
+            <Feather name="shield" size={20} color="#F59E0B" />
+            <Text className="text-stone-800 font-sansBold text-base mt-2">Audit Logs</Text>
+            <Text className="text-stone-400 text-xs font-sans mt-0.5">Activity Stream</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('UserList')}
+            className="w-[48%] bg-stone-900 p-4 rounded-2xl shadow-sm mb-3"
+          >
+            <Feather name="users" size={20} color="#fff" />
+            <Text className="text-white font-sansBold text-base mt-2">Team Profiles</Text>
+            <Text className="text-stone-400 text-xs font-sans mt-0.5">User Access</Text>
           </TouchableOpacity>
         </View>
         
@@ -134,8 +148,12 @@ export default function SupervisorDashboard({ navigation }: any) {
             {data?.stock?.length > 0 ? (
               data.stock.map((s: any, index: number) => (
                 <View key={index} className="bg-white w-[48%] p-4 rounded-2xl mb-3 shadow-sm border border-stone-200">
-                  <Text className="text-stone-400 text-[10px] uppercase font-sansBold tracking-wider mb-1">Mat: {s.materialId?.substring(0,6)}</Text>
-                  <Text className="text-2xl font-displayBold text-amber-600">{s.netQuantity.toLocaleString()} <Text className="text-xs font-sans text-stone-400">kg</Text></Text>
+                  <Text className="text-stone-400 text-[10px] uppercase font-sansBold tracking-wider mb-1">
+                    {s.materialCode || s.materialId?.substring(0,6)}
+                  </Text>
+                  <Text className="text-2xl font-displayBold text-amber-600">
+                    {s.netQuantity.toLocaleString()} <Text className="text-xs font-sans text-stone-400">{s.unitOfMeasure || 'kg'}</Text>
+                  </Text>
                 </View>
               ))
             ) : (
