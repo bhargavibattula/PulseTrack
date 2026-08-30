@@ -1,137 +1,151 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, RefreshControl, ScrollView } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { api } from '../../services/api';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
+import { api, apiErrorMessage } from '../../services/api';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/useAuthStore';
-import type { InventoryPool, Silo } from '../../types';
-import StatusBadge from '../../components/status/StatusBadge';
-import PrimaryButton from '../../components/feedback/PrimaryButton';
 
-// Operator dashboard: intentionally simple, unit-scoped only, no cross-unit
-// analytics (design doc Section D.2 / SRS §30).
-// Uses the aggregated /dashboard/operator endpoint for a single fast request.
 export default function OperatorDashboard({ navigation }: any) {
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
-  const [pools, setPools] = useState<InventoryPool[]>([]);
-  const [silos, setSilos] = useState<Silo[]>([]);
-  const [recentIntakes, setRecentIntakes] = useState<any[]>([]);
-  const [recentShifts, setRecentShifts] = useState<any[]>([]);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const logout = useAuthStore((s) => s.logout);
 
-  const load = useCallback(async () => {
+  const fetchDashboard = useCallback(async () => {
     try {
-      const { data: res } = await api.get('/dashboard/operator');
-      setPools(res.data.pools || []);
-      setSilos(res.data.silos || []);
-      setRecentIntakes(res.data.recentIntakes || []);
-      setRecentShifts(res.data.recentShifts || []);
+      const res = await api.get('/dashboard/operator');
+      setData(res.data.data);
+      setError(null);
     } catch (err) {
-      // Fallback to separate calls if dashboard endpoint isn't available
-      try {
-        const [inv, siloRes] = await Promise.all([api.get('/inventory'), api.get('/silos')]);
-        setPools(inv.data.data);
-        setSilos(siloRes.data.data);
-      } catch {
-        // dashboard failures are non-blocking — leave last-known state on screen
-      }
+      setError(apiErrorMessage(err));
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
 
-  async function onRefresh() {
+  const onRefresh = () => {
     setRefreshing(true);
-    await load();
-    setRefreshing(false);
+    fetchDashboard();
+  };
+
+  if (loading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-stone-50">
+        <ActivityIndicator size="large" color="#0f766e" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 items-center justify-center bg-stone-50 p-4">
+        <Feather name="alert-circle" size={48} color="#dc2626" />
+        <Text className="text-red-600 mt-4 text-center">{error}</Text>
+      </View>
+    );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-stone-50">
-      <ScrollView
-        className="flex-1 px-5 pt-4"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        <Text className="text-3xl font-displayExtraBold text-stone-900">My Unit</Text>
-        <Text className="text-stone-500 mb-6 font-sansMedium">{user?.name} · Operator</Text>
+    <ScrollView 
+      className="flex-1 bg-stone-50"
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
+      <View className="p-4 pt-8 bg-teal-800 pb-6 rounded-b-3xl flex-row justify-between items-center">
+        <View>
+          <Text className="text-white text-2xl font-bold">Operator</Text>
+          <Text className="text-teal-100 text-sm mt-1">Live Stock & Production Overview</Text>
+        </View>
+        <TouchableOpacity onPress={logout} className="bg-teal-900 p-2 rounded-full">
+          <Feather name="log-out" size={20} color="#99f6e4" />
+        </TouchableOpacity>
+      </View>
 
-        {/* Current Inventory */}
-        <Text className="text-stone-500 text-[13px] font-sansBold mb-2 uppercase tracking-wide">Current Inventory</Text>
-        <View className="flex-row flex-wrap justify-between mb-6">
-          {pools.length === 0 && <Text className="text-stone-400 font-sans">No inventory recorded yet.</Text>}
-          {pools.map((p) => (
-            <View key={p._id} className="bg-amber-50 rounded-[20px] px-5 py-4 w-[48%] mb-4 border border-amber-100">
-              <Text className="text-stone-500 text-xs font-sansMedium mb-1">{p.poolType}</Text>
-              <Text className="text-2xl font-displayBold text-amber-600">{p.quantityKg.toFixed(0)}</Text>
-              <Text className="text-amber-600/70 text-[10px] font-sansBold">KG</Text>
+      <View className="p-4 space-y-6">
+
+        {/* Quick Action Shortcuts */}
+        <View className="flex-row space-x-3 mb-2">
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Processing')}
+            className="flex-1 bg-teal-700 p-4 rounded-2xl shadow-sm flex-row items-center justify-between"
+          >
+            <View>
+              <Text className="text-white font-bold text-base">New Transfer</Text>
+              <Text className="text-teal-200 text-xs">Record Input</Text>
             </View>
-          ))}
-        </View>
+            <Feather name="plus-circle" size={24} color="#fff" />
+          </TouchableOpacity>
 
-        {/* Silo Status */}
-        <Text className="text-stone-500 text-[13px] font-sansBold mb-2 uppercase tracking-wide">Silo Status</Text>
-        <View className="mb-6">
-          {silos.map((s) => (
-            <View key={s._id} className="flex-row items-center justify-between bg-white border border-stone-200 rounded-[20px] px-5 py-4 mb-3 shadow-sm">
-              <View>
-                <Text className="font-sansBold text-stone-900 text-base">{s.name}</Text>
-                <Text className="text-stone-400 text-[13px] font-sansMedium">{s.currentQuantityKg.toFixed(0)} kg</Text>
-              </View>
-              <StatusBadge status={s.status} />
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Yield')}
+            className="flex-1 bg-amber-600 p-4 rounded-2xl shadow-sm flex-row items-center justify-between"
+          >
+            <View>
+              <Text className="text-white font-bold text-base">Lab Yield</Text>
+              <Text className="text-amber-100 text-xs">Submit Results</Text>
             </View>
-          ))}
+            <Feather name="flask" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Pending Lab Entries Section */}
+        <View>
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-lg font-bold text-stone-800">Pending Lab Yields</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Yield')}>
+              <Text className="text-teal-700 font-bold text-xs">Submit Lab →</Text>
+            </TouchableOpacity>
+          </View>
+
+          {data?.pendingLabEntries?.length > 0 ? (
+            data.pendingLabEntries.map((entry: any) => (
+              <TouchableOpacity 
+                key={entry._id} 
+                onPress={() => navigation.navigate('Yield')}
+                className="bg-white p-4 rounded-xl mb-3 shadow-sm border border-stone-100 flex-row justify-between items-center"
+              >
+                <View>
+                  <Text className="font-bold text-teal-700">Ref: {entry._id.substring(0,6)}</Text>
+                  <Text className="text-stone-500 text-sm mt-1">Input Qty: {entry.processingQty} kg</Text>
+                  <Text className="text-stone-400 text-xs mt-0.5">{entry.process?.name || 'Process'} • Source: {entry.sourceLocation?.code || 'N/A'}</Text>
+                </View>
+                <View className="bg-amber-100 px-3 py-1 rounded-full">
+                  <Text className="text-amber-800 text-xs font-bold">AWAITING YIELD</Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View className="bg-stone-100 p-4 rounded-xl items-center border border-dashed border-stone-300">
+              <Text className="text-stone-500">No pending lab entries.</Text>
+            </View>
+          )}
         </View>
 
-        {/* Recent Intakes */}
-        {recentIntakes.length > 0 && (
-          <View className="mb-6">
-            <Text className="text-stone-500 text-[13px] font-sansBold mb-2 uppercase tracking-wide">Recent Intakes</Text>
-            {recentIntakes.map((intake) => (
-              <View key={intake._id} className="bg-white border border-stone-200 rounded-2xl px-4 py-3 mb-2 shadow-sm">
-                <View className="flex-row justify-between items-center">
-                  <Text className="font-sansBold text-stone-900">{intake.vehicleNumber}</Text>
-                  <Text className="text-amber-600 font-sansBold">{intake.adjustedNetWeightKg?.toFixed(0)} kg</Text>
+        {/* Operational Stock Summary Section */}
+        <View>
+          <Text className="text-lg font-bold text-stone-800 mb-3">Operational Stock Summary</Text>
+          <View className="flex-row flex-wrap justify-between">
+            {data?.operationalStock?.length > 0 ? (
+              data.operationalStock.map((stock: any, index: number) => (
+                <View key={index} className="bg-white w-[48%] p-4 rounded-xl mb-3 shadow-sm border border-stone-100">
+                  <Text className="text-stone-500 text-xs uppercase font-bold tracking-wider mb-1">Material ID</Text>
+                  <Text className="text-stone-800 font-bold mb-2">{stock.materialId?.substring(0,6) || 'Unknown'}</Text>
+                  <Text className="text-2xl font-black text-teal-700">{stock.netQuantity.toLocaleString()} <Text className="text-sm font-normal text-stone-400">kg</Text></Text>
                 </View>
-                <Text className="text-stone-400 text-xs font-sans mt-1">
-                  Gross: {intake.grossWeightKg?.toFixed(0)} kg · Moisture: {intake.moisturePct}% · {new Date(intake.date).toLocaleDateString()}
-                </Text>
+              ))
+            ) : (
+              <View className="w-full bg-stone-100 p-4 rounded-xl items-center border border-dashed border-stone-300">
+                <Text className="text-stone-500">No operational stock recorded.</Text>
               </View>
-            ))}
+            )}
           </View>
-        )}
-
-        {/* Recent Shifts */}
-        {recentShifts.length > 0 && (
-          <View className="mb-6">
-            <Text className="text-stone-500 text-[13px] font-sansBold mb-2 uppercase tracking-wide">Recent Shift Summaries</Text>
-            {recentShifts.map((shift) => (
-              <View key={shift._id} className="bg-stone-100 rounded-2xl px-4 py-3 mb-2">
-                <View className="flex-row justify-between items-center">
-                  <Text className="font-sansBold text-stone-900">{shift.shiftLabel}</Text>
-                  <View className={`rounded-full px-2 py-0.5 ${shift.status === 'SUBMITTED' ? 'bg-green-100' : 'bg-orange-100'}`}>
-                    <Text className={`text-[10px] font-sansBold ${shift.status === 'SUBMITTED' ? 'text-green-600' : 'text-orange-600'}`}>
-                      {shift.status}
-                    </Text>
-                  </View>
-                </View>
-                <Text className="text-stone-400 text-xs font-sans mt-1">{new Date(shift.date).toLocaleDateString()}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Actions */}
-        <View className="gap-3 mb-8">
-          <PrimaryButton label="New Intake" onPress={() => navigation.navigate('NewIntake')} iconName="plus" />
-          <PrimaryButton label="Submit Shift Summary" onPress={() => navigation.navigate('Shifts')} variant="outline" iconName="clipboard" />
-          <PrimaryButton label="Log Out" onPress={() => logout()} variant="danger" iconName="log-out" />
         </View>
-      </ScrollView>
-    </SafeAreaView>
+
+      </View>
+    </ScrollView>
   );
 }
