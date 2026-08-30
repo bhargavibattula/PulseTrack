@@ -1,5 +1,5 @@
 const Dispatch = require('../models/Dispatch');
-const { debitPool } = require('../services/inventoryService');
+// Removed inventoryService require
 const { writeAudit } = require('../services/auditService');
 const { ok, created } = require('../utils/response');
 const { Errors } = require('../utils/errors');

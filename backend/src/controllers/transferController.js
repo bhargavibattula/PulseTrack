@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 const InterUnitTransfer = require('../models/InterUnitTransfer');
-const { creditPool, debitPool } = require('../services/inventoryService');
+// Removed inventoryService require
 const { writeAudit } = require('../services/auditService');
 const { ok, created } = require('../utils/response');
 const { Errors } = require('../utils/errors');

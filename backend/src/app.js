@@ -8,19 +8,17 @@ const unitRoutes = require('./routes/unitRoutes');
 const userRoutes = require('./routes/userRoutes');
 const intakeRoutes = require('./routes/intakeRoutes');
 const configRoutes = require('./routes/configRoutes');
-const siloRoutes = require('./routes/siloRoutes');
-const siloMovementRoutes = require('./routes/siloMovementRoutes');
-const inventoryRoutes = require('./routes/inventoryRoutes');
 const shiftRoutes = require('./routes/shiftRoutes');
-const processingRoutes = require('./routes/processingRoutes');
-const byproductRoutes = require('./routes/byproductRoutes');
 const transferRoutes = require('./routes/transferRoutes');
 const dispatchRoutes = require('./routes/dispatchRoutes');
 const labRoutes = require('./routes/labRoutes');
-const yieldRoutes = require('./routes/yieldRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+
+const productionRoutes = require('./routes/productionRoutes');
+const stockRoutes = require('./routes/stockRoutes');
+const masterDataRoutes = require('./routes/masterDataRoutes');
 
 const app = express();
 
@@ -35,16 +33,15 @@ app.use('/api/v1/units', unitRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/intake', intakeRoutes);
 app.use('/api/v1/configuration', configRoutes);
-app.use('/api/v1/silos', siloRoutes);
-app.use('/api/v1/silo-movements', siloMovementRoutes);
-app.use('/api/v1/inventory', inventoryRoutes);
+
+app.use('/api/v1/master-data', masterDataRoutes);
+app.use('/api/v1/production', productionRoutes);
+app.use('/api/v1/stock', stockRoutes);
+
 app.use('/api/v1/shifts', shiftRoutes);
-app.use('/api/v1/processing-runs', processingRoutes);
-app.use('/api/v1/byproducts', byproductRoutes);
 app.use('/api/v1/transfers', transferRoutes);
 app.use('/api/v1/dispatch', dispatchRoutes);
 app.use('/api/v1/lab-tests', labRoutes);
-app.use('/api/v1/yield', yieldRoutes);
 app.use('/api/v1/audit-logs', auditRoutes);
 app.use('/api/v1/reports', reportRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);

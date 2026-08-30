@@ -1,7 +1,7 @@
 const Intake = require('../models/Intake');
 const { computeMoistureDeduction } = require('../services/moistureService');
 const { getCurrentConfig } = require('../services/configService');
-const { creditPool } = require('../services/inventoryService');
+// Removed inventoryService require
 const { writeAudit } = require('../services/auditService');
 const { ok, created } = require('../utils/response');
 const { Errors } = require('../utils/errors');

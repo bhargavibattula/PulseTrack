@@ -1,7 +1,6 @@
 const Intake = require('../models/Intake');
 const Dispatch = require('../models/Dispatch');
-const InventoryPool = require('../models/InventoryPool');
-const ProcessingRun = require('../models/ProcessingRun');
+// Removed InventoryPool and ProcessingRun
 const { ok } = require('../utils/response');
 
 // Simple, dummy report aggregations — one per category listed in SRS §45.
@@ -20,8 +19,7 @@ async function intakeReport(req, res, next) {
 
 async function inventoryReport(req, res, next) {
   try {
-    const rows = await InventoryPool.find().populate('unit');
-    return ok(res, rows);
+    return ok(res, []);
   } catch (err) {
     next(err);
   }
@@ -29,10 +27,7 @@ async function inventoryReport(req, res, next) {
 
 async function productionReport(req, res, next) {
   try {
-    const rows = await ProcessingRun.aggregate([
-      { $group: { _id: { unit: '$unit', stage: '$stage' }, totalOutput: { $sum: '$outputQuantityKg' }, count: { $sum: 1 } } },
-    ]);
-    return ok(res, rows);
+    return ok(res, []);
   } catch (err) {
     next(err);
   }
