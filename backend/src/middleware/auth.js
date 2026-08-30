@@ -10,7 +10,7 @@ function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET || 'dummy_access_secret_change_me');
-    req.user = { id: payload.sub, role: payload.role, unit: payload.unit || null };
+    req.user = { id: payload.sub, _id: payload.sub, role: payload.role, unit: payload.unit || null };
     next();
   } catch (err) {
     next(Errors.unauthenticated('Invalid or expired token.'));

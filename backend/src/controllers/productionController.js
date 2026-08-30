@@ -69,6 +69,7 @@ exports.submitYield = async (req, res, next) => {
       await yieldResult.save({ session });
 
       const yieldOutputDocs = calculatedOutputs.map(o => ({
+        _id: new mongoose.Types.ObjectId(),
         yieldResult: yieldResult._id,
         destinationLocation: o.destinationLocationId,
         material: o.materialId,
@@ -83,7 +84,7 @@ exports.submitYield = async (req, res, next) => {
       transactions.push({
         unit: transfer.unit,
         location: transfer.sourceLocation,
-        material: outputs[0].materialId, // Dummy
+        material: outputs[0].materialId,
         direction: 'OUT',
         quantity: transfer.adjustedInputQty || transfer.processingQty,
         transactionType: 'PRODUCTION',
@@ -108,10 +109,10 @@ exports.submitYield = async (req, res, next) => {
 
       transfer.status = 'COMPLETED';
       await transfer.save({ session });
+
+      await recordStockTransactions(transactions, session);
       
       await session.commitTransaction();
-
-      await recordStockTransactions(transactions);
 
       return ok(res, { yieldResult });
     } catch (err) {

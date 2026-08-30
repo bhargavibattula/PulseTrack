@@ -55,9 +55,10 @@ const getCurrentStock = async (locationId, materialId, session) => {
  * Records an atomic stock movement. 
  * Expected payload: array of { unit, location, material, direction, quantity, transactionType, referenceType, referenceId, createdBy }
  */
-const recordStockTransactions = async (transactions) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+const recordStockTransactions = async (transactions, existingSession) => {
+  const session = existingSession || (await mongoose.startSession());
+  const isInternal = !existingSession;
+  if (isInternal) session.startTransaction();
 
   try {
     const createdTransactions = [];
@@ -80,13 +81,13 @@ const recordStockTransactions = async (transactions) => {
       );
     }
 
-    await session.commitTransaction();
+    if (isInternal) await session.commitTransaction();
     return createdTransactions;
   } catch (error) {
-    await session.abortTransaction();
+    if (isInternal) await session.abortTransaction();
     throw error;
   } finally {
-    session.endSession();
+    if (isInternal) session.endSession();
   }
 };
 
