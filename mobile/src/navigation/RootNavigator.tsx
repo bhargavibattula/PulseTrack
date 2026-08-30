@@ -3,11 +3,10 @@ import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { useAuthStore } from '../store/useAuthStore';
 import AuthNavigator from './AuthNavigator';
-import ManagerNavigator from './ManagerNavigator';
+import SupervisorNavigator from './SupervisorNavigator';
 import OperatorNavigator from './OperatorNavigator';
 
-// Login -> role detection -> route to Manager or Operator/Supervisor navigator
-// (design doc Section E.1 / SRS §32).
+// Login -> role detection -> route to Supervisor or Operator navigator
 export default function RootNavigator() {
   const user = useAuthStore((s) => s.user);
   const isHydrated = useAuthStore((s) => s.isHydrated);
@@ -27,7 +26,7 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {!user ? <AuthNavigator /> : user.role === 'MANAGER' ? <ManagerNavigator /> : <OperatorNavigator />}
+      {!user ? <AuthNavigator /> : user.role === 'SUPERVISOR' ? <SupervisorNavigator /> : <OperatorNavigator />}
     </NavigationContainer>
   );
 }

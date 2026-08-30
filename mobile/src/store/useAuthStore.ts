@@ -40,11 +40,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   async hydrate() {
     try {
       const token = await tokenStorage.getAccessToken();
-      if (!token) return set({ isHydrated: true });
+      if (!token) return set({ user: null, isHydrated: true });
       const { data } = await api.get('/auth/me');
       set({ user: data.data, isHydrated: true });
     } catch {
-      set({ isHydrated: true });
+      await tokenStorage.clear();
+      set({ user: null, isHydrated: true });
     }
   },
 }));
