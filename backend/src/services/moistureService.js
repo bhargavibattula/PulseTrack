@@ -1,28 +1,26 @@
 /**
- * DUMMY BUSINESS LOGIC — placeholder only.
- *
- * SRS §9 / §48.1 explicitly leaves the exact moisture-deduction formula as
- * CLARIFICATION_REQUIRED. The rule below is NOT a business rule — it is a
- * simple, clearly-flagged stand-in so the rest of the pipeline (intake ->
- * inventory -> yield) can be built and tested end-to-end.
- *
- * Replace `computeMoistureDeduction` with the real client-approved formula
- * before this goes anywhere near production data. Nothing else in the app
- * needs to change when you do — every caller goes through this one function.
+ * Calculates moisture deductions based on the confirmed SRS 1.0 rule.
+ * Standard moisture is fixed at 10%.
+ * Formula: adjusted_qty = qty * (1 - (moisture - 10) / 100)
  */
-function computeMoistureDeduction({ rawWeightKg, actualMoisturePct, targetMoisturePct }) {
-  if (actualMoisturePct <= targetMoisturePct) {
-    return { moistureDeductionKg: 0, adjustedNetWeightKg: rawWeightKg };
+
+function calculateMoistureAdjustedQuantity(quantityKg, actualMoisturePct) {
+  if (actualMoisturePct == null || isNaN(actualMoisturePct)) {
+    return quantityKg;
   }
 
-  // --- DUMMY FORMULA (placeholder) ---
-  // Naively deducts 1% of raw weight per 1 percentage-point of excess moisture.
-  // This is almost certainly NOT the real mill formula. Flagged loudly on purpose.
-  const excessPct = actualMoisturePct - targetMoisturePct;
-  const moistureDeductionKg = Math.round(rawWeightKg * (excessPct / 100) * 100) / 100;
-  const adjustedNetWeightKg = Math.round((rawWeightKg - moistureDeductionKg) * 100) / 100;
+  if (actualMoisturePct < 10) {
+    // SRS 6.3: Behavior below 10% is not yet defined. Block submission until configured.
+    throw new Error('Moisture below 10% is not currently supported by business rules. Please configure this rule before proceeding.');
+  }
 
-  return { moistureDeductionKg, adjustedNetWeightKg };
+  // Exact client formula: percentage-point deduction
+  const moisturePoints = actualMoisturePct - 10;
+  const deductionKg = quantityKg * (moisturePoints / 100);
+  const adjustedQty = quantityKg - deductionKg;
+
+  // Round to 2 decimal places for storage
+  return Math.round(adjustedQty * 100) / 100;
 }
 
-module.exports = { computeMoistureDeduction };
+module.exports = { calculateMoistureAdjustedQuantity };
