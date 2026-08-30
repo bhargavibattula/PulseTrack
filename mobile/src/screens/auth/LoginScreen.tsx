@@ -8,7 +8,7 @@ import { apiErrorMessage } from '../../services/api';
 
 // DUMMY VALUES pre-filled for local dev convenience — remove before real deployment.
 export default function LoginScreen() {
-  const [email, setEmail] = useState('manager@toordal.test');
+  const [email, setEmail] = useState('supervisor.unit_1@toordal.test');
   const [password, setPassword] = useState('password123');
   const [error, setError] = useState<string | null>(null);
   const login = useAuthStore((s) => s.login);
@@ -35,7 +35,7 @@ export default function LoginScreen() {
       </View>
 
       <View className="flex-1 justify-center px-6 mt-32">
-        <View className="bg-white/90 p-6 rounded-[24px] shadow-sm border border-stone-100">
+        <View className="bg-white/95 p-6 rounded-[24px] shadow-sm border border-stone-200">
           <Text className="text-3xl font-displayExtraBold text-stone-900 mb-1">Toor Dal System</Text>
           <Text className="text-stone-500 mb-8 font-sansMedium">Sign in to continue</Text>
 
@@ -56,7 +56,7 @@ export default function LoginScreen() {
         </View>
 
         <Text className="text-stone-400 text-xs mt-6 text-center font-sans">
-          Demo accounts (seeded): manager@toordal.test · supervisor.unit_1@toordal.test ·{'\n'}
+          Demo accounts (seeded): supervisor.unit_1@toordal.test ·{'\n'}
           operator.unit_1@toordal.test — password: password123
         </Text>
       </View>
