@@ -45,7 +45,8 @@ export default function SiloListScreen({ navigation }: any) {
           />
         }
         renderItem={({ item }) => (
-          <View
+          <TouchableOpacity
+            onPress={() => navigation.navigate('SiloDetail', { siloId: item._id })}
             className="bg-white border border-stone-200 rounded-[24px] p-5 mb-3.5 shadow-sm"
           >
             <View className="flex-row items-center justify-between mb-3">
@@ -77,7 +78,7 @@ export default function SiloListScreen({ navigation }: any) {
                 Cap: {item.capacityKg ? `${item.capacityKg.toLocaleString()} kg` : 'N/A'} ({item.fillPercentage || 0}%)
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
       />
     </ScreenContainer>

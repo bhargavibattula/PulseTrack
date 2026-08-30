@@ -1,32 +1,23 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, FlatList } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenContainer from '../../components/feedback/ScreenContainer';
 import StatusBadge from '../../components/status/StatusBadge';
-import PrimaryButton from '../../components/feedback/PrimaryButton';
-import ErrorBanner from '../../components/feedback/ErrorBanner';
 import { api, apiErrorMessage } from '../../services/api';
-import type { Silo, SiloStatus } from '../../types';
-
-// Valid transitions mirror the backend state machine exactly (design doc Section G.1).
-const NEXT_STATUS: Record<SiloStatus, SiloStatus | null> = {
-  EMPTY: 'FILLING',
-  FILLING: 'FULL_SITTING',
-  FULL_SITTING: 'EMPTYING',
-  EMPTYING: 'EMPTY',
-};
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function SiloDetailScreen({ route }: any) {
   const { siloId } = route.params;
-  const [silo, setSilo] = useState<Silo | null>(null);
-  const [movements, setMovements] = useState<any[]>([]);
+  const [silo, setSilo] = useState<any>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [updating, setUpdating] = useState(false);
 
   const load = useCallback(() => {
     api.get(`/silos/${siloId}`).then((res) => {
       setSilo(res.data.data.silo);
-      setMovements(res.data.data.movements);
+      setTransactions(res.data.data.transactions || []);
+    }).catch(err => {
+      setError(apiErrorMessage(err));
     });
   }, [siloId]);
 
@@ -36,51 +27,66 @@ export default function SiloDetailScreen({ route }: any) {
     }, [load])
   );
 
-  async function advanceStatus() {
-    if (!silo) return;
-    const next = NEXT_STATUS[silo.status];
-    if (!next) return;
-    setUpdating(true);
-    setError(null);
-    try {
-      await api.patch(`/silos/${silo._id}/status`, { newStatus: next });
-      load();
-    } catch (err) {
-      setError(apiErrorMessage(err));
-    } finally {
-      setUpdating(false);
-    }
-  }
-
   if (!silo) return null;
 
   return (
-    <SafeAreaView className="flex-1 bg-stone-50">
-      <ScrollView className="flex-1 px-5 pt-4">
-        <View className="flex-row items-center justify-between mb-1">
-          <Text className="text-2xl font-displayExtraBold text-stone-900 font-sansBold">{silo.name}</Text>
-          <StatusBadge status={silo.status} />
-        </View>
-        <Text className="text-stone-500 font-sansMedium mb-6">{silo.currentQuantityKg.toFixed(0)} kg current</Text>
-
-        <ErrorBanner message={error} />
-
-        <PrimaryButton
-          label={NEXT_STATUS[silo.status] ? `Move to ${NEXT_STATUS[silo.status]?.replace('_', ' ')}` : 'No further transition'}
-          onPress={advanceStatus}
-          loading={updating}
-          disabled={!NEXT_STATUS[silo.status]}
-        />
-
-        <Text className="text-stone-500 font-sansMedium text-sm font-sansMedium mt-8 mb-2">Recent Movements</Text>
-        {movements.length === 0 && <Text className="text-stone-400 font-sans">No movement recorded yet.</Text>}
-        {movements.map((m) => (
-          <View key={m._id} className="bg-stone-100 rounded-xl px-4 py-3 mb-2">
-            <Text className="text-stone-900 font-sansBold font-sansMedium">{m.quantityKg} kg · {m.materialType}</Text>
-            <Text className="text-stone-400 font-sans text-xs">{new Date(m.createdAt).toLocaleString()}</Text>
+    <ScreenContainer scroll={false}>
+      <View className="bg-white border border-stone-200 rounded-[24px] p-5 mb-5 shadow-sm">
+        <View className="flex-row items-center justify-between mb-2">
+          <View className="flex-row items-center">
+            <View className="bg-amber-500/10 p-2.5 rounded-2xl mr-3">
+              <MaterialCommunityIcons name="silo" size={24} color="#F59E0B" />
+            </View>
+            <View>
+              <Text className="text-xl font-sansBold text-stone-900">{silo.name}</Text>
+              <Text className="text-stone-400 font-sans text-xs">Code: {silo.code}</Text>
+            </View>
           </View>
-        ))}
-      </ScrollView>
-    </SafeAreaView>
+          <StatusBadge status={silo.status || 'EMPTY'} />
+        </View>
+
+        <View className="flex-row justify-between items-center mt-3 pt-3 border-t border-stone-100">
+          <Text className="text-stone-500 font-sans text-sm">Capacity</Text>
+          <Text className="font-displayBold text-stone-900 text-base">{silo.capacityKg ? `${silo.capacityKg.toLocaleString()} kg` : 'N/A'}</Text>
+        </View>
+      </View>
+
+      <Text className="text-stone-500 font-sansBold text-[13px] uppercase tracking-wide mb-3">Location Stock Activity</Text>
+      
+      <FlatList
+        data={transactions}
+        keyExtractor={(item) => item._id}
+        ListEmptyComponent={
+          <View className="bg-white p-6 rounded-2xl items-center border border-dashed border-stone-200">
+            <Text className="text-stone-400 font-sans text-sm">No transaction movements recorded for this silo.</Text>
+          </View>
+        }
+        renderItem={({ item }) => {
+          const isCredit = item.direction === 'IN';
+          return (
+            <View className="bg-white border border-stone-200 rounded-2xl p-4 mb-2.5 shadow-sm flex-row justify-between items-center">
+              <View>
+                <View className="flex-row items-center space-x-2">
+                  <View className={`px-2 py-0.5 rounded ${isCredit ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
+                    <Text className={`text-[10px] font-sansBold ${isCredit ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {item.transactionType} ({item.direction})
+                    </Text>
+                  </View>
+                  <Text className="text-stone-400 font-sans text-xs">
+                    {new Date(item.created_at || item.createdAt).toLocaleDateString()}
+                  </Text>
+                </View>
+                <Text className="text-stone-700 font-sansBold text-xs mt-1">
+                  Material: {item.material?.name || 'Item'} • By {item.createdBy?.name || 'User'}
+                </Text>
+              </View>
+              <Text className={`font-displayBold text-base ${isCredit ? 'text-emerald-600' : 'text-stone-900'}`}>
+                {isCredit ? '+' : '-'}{item.quantity?.toLocaleString()} kg
+              </Text>
+            </View>
+          );
+        }}
+      />
+    </ScreenContainer>
   );
 }
