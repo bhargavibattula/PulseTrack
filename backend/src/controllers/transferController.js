@@ -29,14 +29,9 @@ async function createTransfer(req, res, next) {
 
     let transfer;
     await session.withTransaction(async () => {
-      await debitPool(
-        { unitId: sourceUnitId, poolType: poolType || 'RAW', quantityKg },
-        session
-      );
-      await creditPool(
-        { unitId: destinationUnitId, poolType: poolType || 'RAW', quantityKg },
-        session
-      );
+      const Location = require('../models/Location');
+      const Material = require('../models/Material');
+      const { recordStockTransactions } = require('../services/stockEngine');
 
       const docs = await InterUnitTransfer.create(
         [
@@ -47,12 +42,45 @@ async function createTransfer(req, res, next) {
             quantityKg,
             initiatedBy: req.user.id,
             referenceId: idempotencyKey,
-            status: 'COMPLETED', // DUMMY: no-approval path, see CLARIFICATION_REQUIRED §48.3
+            status: 'COMPLETED',
           },
         ],
         { session }
       );
       transfer = docs[0];
+
+      const [srcLoc, dstLoc, mat] = await Promise.all([
+        Location.findOne({ unit: sourceUnitId, type: 'SILO', isActive: true }).session(session),
+        Location.findOne({ unit: destinationUnitId, type: 'SILO', isActive: true }).session(session),
+        Material.findOne({ code: materialType || 'RAW_TOOR', isActive: true }).session(session) || Material.findOne({ isActive: true }).session(session)
+      ]);
+
+      if (srcLoc && dstLoc && mat) {
+        await recordStockTransactions([
+          {
+            unit: sourceUnitId,
+            location: srcLoc._id,
+            material: mat._id,
+            direction: 'OUT',
+            quantity: quantityKg,
+            transactionType: 'OPERATOR_MOVEMENT',
+            referenceType: 'InterUnitTransfer',
+            referenceId: transfer._id,
+            createdBy: req.user.id
+          },
+          {
+            unit: destinationUnitId,
+            location: dstLoc._id,
+            material: mat._id,
+            direction: 'IN',
+            quantity: quantityKg,
+            transactionType: 'OPERATOR_MOVEMENT',
+            referenceType: 'InterUnitTransfer',
+            referenceId: transfer._id,
+            createdBy: req.user.id
+          }
+        ], session);
+      }
 
       await writeAudit(
         {

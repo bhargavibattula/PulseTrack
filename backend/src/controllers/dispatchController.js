@@ -10,7 +10,14 @@ async function createDispatch(req, res, next) {
     const { truckNumber, product, quantityKg, destinationReference } = req.body;
     if (!unit || quantityKg == null) throw Errors.validation('unitId and quantityKg are required.');
 
-    await debitPool({ unitId: unit, poolType: 'FINISHED', quantityKg });
+    const Location = require('../models/Location');
+    const Material = require('../models/Material');
+    const { recordStockTransactions } = require('../services/stockEngine');
+
+    const [finLoc, finMat] = await Promise.all([
+      Location.findOne({ unit, type: 'SILO', isActive: true, code: { $regex: /FIN/i } }) || Location.findOne({ unit, isActive: true }),
+      Material.findOne({ code: 'MAIN_DAL', isActive: true }) || Material.findOne({ type: 'FINISHED', isActive: true })
+    ]);
 
     const dispatch = await Dispatch.create({
       unit,
@@ -20,6 +27,20 @@ async function createDispatch(req, res, next) {
       destinationReference,
       operator: req.user.id,
     });
+
+    if (finLoc && finMat) {
+      await recordStockTransactions([{
+        unit,
+        location: finLoc._id,
+        material: finMat._id,
+        direction: 'OUT',
+        quantity: quantityKg,
+        transactionType: 'OPERATOR_MOVEMENT',
+        referenceType: 'Dispatch',
+        referenceId: dispatch._id,
+        createdBy: req.user.id
+      }]);
+    }
 
     await writeAudit({
       userId: req.user.id,

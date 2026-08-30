@@ -163,16 +163,6 @@ async function recordMovement(req, res, next) {
         await toSilo.save({ session });
       }
 
-      // Sync inventory pools when material moves between units via silos,
-      // or when material enters/leaves the silo system.
-      const sourceUnitId = fromSilo?.unit;
-      const destUnitId = toSilo?.unit;
-      if (sourceUnitId && destUnitId && String(sourceUnitId) !== String(destUnitId)) {
-        // Cross-unit silo movement: debit source unit pool, credit dest unit pool
-        await debitPool({ unitId: sourceUnitId, poolType, quantityKg }, session);
-        await creditPool({ unitId: destUnitId, poolType, quantityKg }, session);
-      }
-
       const docs = await SiloMovement.create(
         [{
           fromSilo: fromSiloId || null,
