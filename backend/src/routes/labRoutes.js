@@ -5,7 +5,7 @@ const { requireRole } = require('../middleware/authorize');
 
 const router = express.Router();
 
-router.post('/', requireAuth, requireRole('MANAGER'), createLabTest);
-router.get('/', requireAuth, requireRole('MANAGER'), listLabTests);
+router.post('/', requireAuth, requireRole('SUPERVISOR', 'OPERATOR'), createLabTest);
+router.get('/', requireAuth, requireRole('SUPERVISOR', 'OPERATOR'), listLabTests);
 
 module.exports = router;

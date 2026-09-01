@@ -1,14 +1,17 @@
-const mongoose = require('mongoose');
 const Location = require('../models/Location');
 const StockTransaction = require('../models/StockTransaction');
+const { recordStockTransactions } = require('../services/stockEngine');
 const { writeAudit } = require('../services/auditService');
 const { ok, created } = require('../utils/response');
 const { Errors } = require('../utils/errors');
 
+const SILO_STATUSES = ['EMPTY', 'FILLING', 'FULL', 'IDLE', 'MAINTENANCE'];
+
 async function listSilos(req, res, next) {
   try {
-    const filter = req.user.role === 'MANAGER' ? { isActive: true } : { unit: req.user.unit, isActive: true };
-    if (req.query.unit_id && req.user.role === 'MANAGER') filter.unit = req.query.unit_id;
+    const filter = { isActive: true };
+    if (req.user.unit) filter.unit = req.user.unit;
+    if (req.query.unit_id) filter.unit = req.query.unit_id;
     
     const locations = await Location.find(filter).populate('unit').sort({ name: 1 }).lean();
 
@@ -52,15 +55,18 @@ async function listSilos(req, res, next) {
 
 async function createSilo(req, res, next) {
   try {
-    const { unitId, name, code, capacityKg } = req.body;
-    const unit = req.user.role === 'MANAGER' ? unitId : req.user.unit;
+    const { unitId, name, code, capacityKg, type } = req.body;
+    const unit = unitId || req.user.unit;
+    if (!unit) throw Errors.validation('unit is required.');
+    
     const silo = await Location.create({
       unit,
       name,
       code: code || name.toUpperCase().replace(/\s+/g, '_'),
-      type: 'SILO',
+      type: type || 'SILO',
       capacityKg: capacityKg || 50000,
-      isActive: true
+      isActive: true,
+      lastActivityAt: new Date()
     });
     return created(res, silo);
   } catch (err) {
@@ -87,110 +93,82 @@ async function getSilo(req, res, next) {
 async function updateSiloStatus(req, res, next) {
   try {
     const { newStatus } = req.body;
-    if (!SILO_STATUSES.includes(newStatus)) throw Errors.validation('Invalid status value.');
+    const location = await Location.findById(req.params.id);
+    if (!location) throw Errors.notFound('Location/Silo not found.');
 
-    const silo = await Silo.findById(req.params.id);
-    if (!silo) throw Errors.notFound('Silo not found.');
-    if (req.user.role !== 'MANAGER' && String(silo.unit) !== String(req.user.unit)) {
+    if (req.user.unit && String(location.unit) !== String(req.user.unit)) {
       throw Errors.unauthorizedUnit();
     }
 
-    const allowed = ALLOWED_TRANSITIONS[silo.status] || [];
-    if (!allowed.includes(newStatus)) {
-      throw Errors.invalidStateTransition(
-        `This silo cannot move from ${silo.status} to ${newStatus}.`
-      );
-    }
-
-    const previousStatus = silo.status;
-    silo.status = newStatus;
-    await silo.save();
+    location.lastActivityAt = new Date();
+    await location.save();
 
     await writeAudit({
       userId: req.user.id,
       action: 'SILO_STATUS_CHANGED',
-      entityType: 'Silo',
-      entityId: silo._id,
-      previousValue: { status: previousStatus },
+      entityType: 'Location',
+      entityId: location._id,
+      previousValue: { status: 'UPDATED' },
       newValue: { status: newStatus },
-      unitId: silo.unit,
+      unitId: location.unit,
     });
 
-    return ok(res, silo);
+    return ok(res, location);
   } catch (err) {
     next(err);
   }
 }
 
 async function recordMovement(req, res, next) {
-  const session = await mongoose.startSession();
   try {
-    const { fromSiloId, toSiloId, materialType, quantityKg, shift } = req.body;
-    if (!materialType || !quantityKg) throw Errors.validation('materialType and quantityKg are required.');
+    const { fromLocationId, toLocationId, materialId, quantityKg } = req.body;
+    if (!materialId || !quantityKg) throw Errors.validation('materialId and quantityKg are required.');
 
-    // Derive pool type from material type for inventory sync.
-    const poolTypeMap = {
-      RAW_TOOR: 'RAW',
-      DRIED_TOOR: 'RAW',
-      GOTA: 'GOTA',
-      FINISHED_DAL: 'FINISHED',
-    };
-    const poolType = poolTypeMap[materialType] || 'RAW';
+    const unit = req.user.unit;
+    const transactions = [];
 
-    let fromSilo = null;
-    let toSilo = null;
-    let movement;
+    if (fromLocationId) {
+      transactions.push({
+        unit,
+        location: fromLocationId,
+        material: materialId,
+        direction: 'OUT',
+        quantity: quantityKg,
+        transactionType: 'OPERATOR_MOVEMENT',
+        referenceType: 'LocationMovement',
+        referenceId: fromLocationId,
+        createdBy: req.user.id
+      });
+    }
 
-    await session.withTransaction(async () => {
-      if (fromSiloId) {
-        fromSilo = await Silo.findById(fromSiloId).session(session);
-        if (!fromSilo) throw Errors.notFound('Source silo not found.');
-        if (req.user.role !== 'MANAGER' && String(fromSilo.unit) !== String(req.user.unit)) {
-          throw Errors.unauthorizedUnit();
-        }
-        if (fromSilo.currentQuantityKg < quantityKg) {
-          throw Errors.insufficientInventory(fromSilo.currentQuantityKg, quantityKg);
-        }
-        fromSilo.currentQuantityKg -= quantityKg;
-        await fromSilo.save({ session });
-      }
+    if (toLocationId) {
+      transactions.push({
+        unit,
+        location: toLocationId,
+        material: materialId,
+        direction: 'IN',
+        quantity: quantityKg,
+        transactionType: 'OPERATOR_MOVEMENT',
+        referenceType: 'LocationMovement',
+        referenceId: toLocationId,
+        createdBy: req.user.id
+      });
+    }
 
-      if (toSiloId) {
-        toSilo = await Silo.findById(toSiloId).session(session);
-        if (!toSilo) throw Errors.notFound('Destination silo not found.');
-        toSilo.currentQuantityKg += quantityKg;
-        toSilo.materialType = materialType;
-        await toSilo.save({ session });
-      }
+    const recorded = await recordStockTransactions(transactions);
 
-      const docs = await SiloMovement.create(
-        [{
-          fromSilo: fromSiloId || null,
-          toSilo: toSiloId || null,
-          materialType,
-          quantityKg,
-          shift,
-          operator: req.user.id,
-        }],
-        { session }
-      );
-      movement = docs[0];
-
-      await writeAudit({
-        userId: req.user.id,
-        action: 'INVENTORY_TRANSFERRED',
-        entityType: 'SiloMovement',
-        entityId: movement._id,
-        newValue: movement.toObject(),
-        unitId: (fromSilo || toSilo)?.unit,
-      }, session);
+    await writeAudit({
+      userId: req.user.id,
+      action: 'INVENTORY_TRANSFERRED',
+      entityType: 'StockTransaction',
+      entityId: recorded[0]?._id || req.user.id,
+      newValue: { fromLocationId, toLocationId, materialId, quantityKg },
+      unitId: unit,
     });
 
-    return created(res, movement);
+    return created(res, recorded);
   } catch (err) {
     next(err);
-  } finally {
-    session.endSession();
   }
 }
 

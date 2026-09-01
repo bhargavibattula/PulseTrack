@@ -6,6 +6,6 @@ const { requireRole } = require('../middleware/authorize');
 const router = express.Router();
 
 router.get('/', requireAuth, listUnits);
-router.post('/', requireAuth, requireRole('MANAGER'), createUnit);
+router.post('/', requireAuth, requireRole('SUPERVISOR'), createUnit);
 
 module.exports = router;

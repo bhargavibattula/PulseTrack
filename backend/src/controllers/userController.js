@@ -5,7 +5,7 @@ const { Errors } = require('../utils/errors');
 
 async function listUsers(req, res, next) {
   try {
-    const filter = req.user.role === 'MANAGER' ? {} : { unit: req.user.unit };
+    const filter = req.user.unit ? { unit: req.user.unit } : {};
     const users = await User.find(filter).select('-passwordHash').populate('unit').sort({ createdAt: -1 });
     return ok(res, users);
   } catch (err) {
@@ -18,9 +18,9 @@ async function createUser(req, res, next) {
     const { name, email, password, role, unitId } = req.body;
     if (!name || !email || !password || !role) throw Errors.validation('name, email, password, role are required.');
     
-    // Assign unit: supervisor can only create users in their own unit
-    const assignedUnit = req.user.role === 'MANAGER' ? (role === 'MANAGER' ? null : unitId) : req.user.unit;
-    if (role !== 'MANAGER' && !assignedUnit) throw Errors.validation('unitId is required for SUPERVISOR/OPERATOR.');
+    // Assign unit: supervisor creates users in their assigned unit
+    const assignedUnit = req.user.unit || unitId;
+    if (!assignedUnit) throw Errors.validation('unit is required for user creation.');
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) throw Errors.validation('A user with this email already exists.');

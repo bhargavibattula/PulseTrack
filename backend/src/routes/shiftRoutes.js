@@ -5,8 +5,8 @@ const { requireRole } = require('../middleware/authorize');
 
 const router = express.Router();
 
-router.post('/', requireAuth, requireRole('OPERATOR', 'SUPERVISOR', 'MANAGER'), createShift);
+router.post('/', requireAuth, requireRole('OPERATOR', 'SUPERVISOR'), createShift);
 router.get('/', requireAuth, listShifts);
-router.patch('/:id', requireAuth, requireRole('OPERATOR', 'SUPERVISOR', 'MANAGER'), updateShift);
+router.patch('/:id', requireAuth, requireRole('OPERATOR', 'SUPERVISOR'), updateShift);
 
 module.exports = router;

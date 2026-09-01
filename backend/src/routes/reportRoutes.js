@@ -5,9 +5,9 @@ const { requireRole } = require('../middleware/authorize');
 
 const router = express.Router();
 
-router.get('/intake', requireAuth, requireRole('MANAGER'), intakeReport);
-router.get('/inventory', requireAuth, requireRole('MANAGER'), inventoryReport);
-router.get('/production', requireAuth, requireRole('MANAGER'), productionReport);
-router.get('/dispatch', requireAuth, requireRole('MANAGER'), dispatchReport);
+router.get('/intake', requireAuth, requireRole('SUPERVISOR'), intakeReport);
+router.get('/inventory', requireAuth, requireRole('SUPERVISOR'), inventoryReport);
+router.get('/production', requireAuth, requireRole('SUPERVISOR'), productionReport);
+router.get('/dispatch', requireAuth, requireRole('SUPERVISOR'), dispatchReport);
 
 module.exports = router;

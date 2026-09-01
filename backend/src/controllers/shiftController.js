@@ -1,29 +1,29 @@
+const ShiftLog = require('../models/ShiftLog');
 const Shift = require('../models/Shift');
 const { ok, created } = require('../utils/response');
 const { Errors } = require('../utils/errors');
 
 async function createShift(req, res, next) {
   try {
-    const unit = req.user.role === 'MANAGER' ? req.body.unitId : req.user.unit;
-    if (!unit) throw Errors.validation('unitId is required.');
+    const unit = req.body.unitId || req.user.unit;
+    if (!unit) throw Errors.validation('unit is required.');
 
-    // Prevent duplicate shift submissions (SRS §43 — duplicate submission guard).
     const shiftLabel = req.body.shiftLabel || 'SHIFT_1';
     const shiftDate = req.body.date ? new Date(req.body.date) : new Date();
-    const dayStart = new Date(shiftDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(shiftDate);
-    dayEnd.setHours(23, 59, 59, 999);
 
-    const existing = await Shift.findOne({
+    const shiftLog = await ShiftLog.create({
       unit,
+      shift: req.body.shiftId || null,
       shiftLabel,
-      date: { $gte: dayStart, $lte: dayEnd },
+      date: shiftDate,
+      movementQuantityKg: req.body.movementQuantityKg || 0,
+      processingQuantityKg: req.body.processingQuantityKg || 0,
+      notes: req.body.notes || null,
+      status: 'COMPLETED',
+      operator: req.user.id
     });
-    if (existing) throw Errors.duplicateSubmission('A shift summary for this unit/date/shift already exists.');
 
-    const shift = await Shift.create({ ...req.body, unit, shiftLabel, operator: req.user.id });
-    return created(res, shift);
+    return created(res, shiftLog);
   } catch (err) {
     next(err);
   }
@@ -31,10 +31,22 @@ async function createShift(req, res, next) {
 
 async function listShifts(req, res, next) {
   try {
-    const filter = req.user.role === 'MANAGER' ? {} : { unit: req.user.unit };
-    if (req.query.unit_id && req.user.role === 'MANAGER') filter.unit = req.query.unit_id;
-    const shifts = await Shift.find(filter).populate('unit operator').sort({ date: -1 }).limit(100);
-    return ok(res, shifts);
+    const filter = {};
+    if (req.user.unit) filter.unit = req.user.unit;
+    if (req.query.unit_id) filter.unit = req.query.unit_id;
+
+    // First retrieve master shifts if requested, otherwise shift logs
+    if (req.query.type === 'master') {
+      const masterShifts = await Shift.find({ isActive: true }).sort({ startTime: 1 });
+      return ok(res, masterShifts);
+    }
+
+    const shiftLogs = await ShiftLog.find(filter)
+      .populate('unit operator shift')
+      .sort({ date: -1 })
+      .limit(100);
+
+    return ok(res, shiftLogs);
   } catch (err) {
     next(err);
   }
@@ -42,11 +54,13 @@ async function listShifts(req, res, next) {
 
 async function updateShift(req, res, next) {
   try {
-    const shift = await Shift.findById(req.params.id);
-    if (!shift) throw Errors.notFound('Shift not found.');
-    if (req.user.role !== 'MANAGER' && String(shift.unit) !== String(req.user.unit)) {
+    const shift = await ShiftLog.findById(req.params.id);
+    if (!shift) throw Errors.notFound('Shift record not found.');
+    
+    if (req.user.unit && String(shift.unit) !== String(req.user.unit)) {
       throw Errors.unauthorizedUnit();
     }
+    
     Object.assign(shift, req.body);
     await shift.save();
     return ok(res, shift);

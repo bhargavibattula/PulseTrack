@@ -1,6 +1,7 @@
 const ProductionTransfer = require('../models/ProductionTransfer');
 const YieldResult = require('../models/YieldResult');
 const YieldOutput = require('../models/YieldOutput');
+const Material = require('../models/Material');
 const { calculateMoistureAdjustedQuantity } = require('../services/moistureService');
 const { validateYieldTotal, calculateYieldOutputs } = require('../services/yieldService');
 const { recordStockTransactions } = require('../services/stockEngine');
@@ -12,6 +13,7 @@ const { writeAudit } = require('../services/auditService');
 exports.createTransfer = async (req, res, next) => {
   try {
     const { unitId, shiftId, processId, sourceLocationId, processingQty, inputMoisture } = req.body;
+    const unit = unitId || req.user.unit;
     
     let adjustedInputQty = processingQty;
     if (inputMoisture != null) {
@@ -19,7 +21,7 @@ exports.createTransfer = async (req, res, next) => {
     }
 
     const transfer = new ProductionTransfer({
-      unit: unitId,
+      unit,
       shift: shiftId,
       process: processId,
       sourceLocation: sourceLocationId,
@@ -38,7 +40,7 @@ exports.createTransfer = async (req, res, next) => {
       entityId: transfer._id,
       action: 'CREATE',
       newValue: transfer.toObject(),
-      unitId: unitId
+      unitId: unit
     });
 
     return created(res, transfer);
@@ -57,6 +59,9 @@ exports.submitYield = async (req, res, next) => {
 
     validateYieldTotal(outputs, totalYieldPercent);
     const calculatedOutputs = calculateYieldOutputs(transfer.processingQty, outputs);
+
+    // Identify raw material for debiting source location
+    const rawMaterial = await Material.findOne({ type: 'RAW', isActive: true }) || await Material.findOne({ isActive: true });
 
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -84,7 +89,7 @@ exports.submitYield = async (req, res, next) => {
       transactions.push({
         unit: transfer.unit,
         location: transfer.sourceLocation,
-        material: outputs[0].materialId,
+        material: rawMaterial?._id || outputs[0].materialId,
         direction: 'OUT',
         quantity: transfer.adjustedInputQty || transfer.processingQty,
         transactionType: 'PRODUCTION',
@@ -187,4 +192,3 @@ exports.getTransferById = async (req, res, next) => {
     next(error);
   }
 };
-
