@@ -1,9 +1,10 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 
-// DUMMY VALUE: point this at your backend. On a physical device/emulator this
-// cannot be "localhost" — use your machine's LAN IP, e.g. http://192.168.1.20:4000/api/v1
-export const API_BASE_URL = 'http://192.168.0.130:4000/api/v1';
+// Automatically detect host computer IP in Expo Go, fallback to current Wi-Fi IP
+const host = Constants.expoConfig?.hostUri?.split(':')[0] || '192.168.1.71';
+export const API_BASE_URL = `http://${host}:4000/api/v1`;
 
 const ACCESS_TOKEN_KEY = 'toor_dal_access_token';
 const REFRESH_TOKEN_KEY = 'toor_dal_refresh_token';

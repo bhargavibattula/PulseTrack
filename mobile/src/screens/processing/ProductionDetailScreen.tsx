@@ -66,17 +66,35 @@ export default function ProductionDetailScreen({ route }: any) {
           <Text className="text-stone-900 font-sansBold">{transfer.shift?.name || 'N/A'}</Text>
         </View>
         <View className="flex-row justify-between mb-2">
-          <Text className="text-stone-500 font-sans">Source Silo</Text>
-          <Text className="text-stone-900 font-sansBold">{transfer.sourceLocation?.name || 'N/A'} ({transfer.sourceLocation?.code})</Text>
+          <Text className="text-stone-500 font-sans">Source Silo (From)</Text>
+          <Text className="text-stone-900 font-sansBold">{transfer.sourceLocation?.name || 'N/A'}</Text>
         </View>
+        {transfer.destinationLocation && (
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-stone-500 font-sans">Destination Silo (To)</Text>
+            <Text className="text-emerald-700 font-sansBold">{transfer.destinationLocation?.name || 'N/A'}</Text>
+          </View>
+        )}
         <View className="flex-row justify-between mb-2">
-          <Text className="text-stone-500 font-sans">Physical Processing Qty</Text>
-          <Text className="text-stone-900 font-displayBold">{transfer.processingQty?.toLocaleString()} kg</Text>
+          <Text className="text-stone-500 font-sans">Physical Weight (Gross)</Text>
+          <Text className="text-stone-900 font-displayBold">
+            {transfer.processingQty >= 1000 ? `${(transfer.processingQty / 1000).toFixed(1)} tons` : `${transfer.processingQty?.toLocaleString()} kg`}
+          </Text>
         </View>
         {transfer.inputMoisture != null && (
+          <View className="flex-row justify-between pt-2 border-t border-stone-100 mb-2">
+            <Text className="text-stone-500 font-sans">I/P Moisture Adj. (10% Std)</Text>
+            <Text className="text-amber-600 font-sansBold">
+              {transfer.inputMoisture}% → {transfer.adjustedInputQty >= 1000 ? `${(transfer.adjustedInputQty / 1000).toFixed(2)} T` : `${transfer.adjustedInputQty?.toLocaleString()} kg`}
+            </Text>
+          </View>
+        )}
+        {transfer.outputMoisture != null && (
           <View className="flex-row justify-between pt-2 border-t border-stone-100">
-            <Text className="text-stone-500 font-sans">Moisture Adj. (10% Std)</Text>
-            <Text className="text-amber-600 font-sansBold">{transfer.inputMoisture}% → {transfer.adjustedInputQty?.toLocaleString()} kg</Text>
+            <Text className="text-stone-500 font-sans">O/P Moisture Adj.</Text>
+            <Text className="text-blue-600 font-sansBold">
+              {transfer.outputMoisture}% → {transfer.adjustedOutputQty >= 1000 ? `${(transfer.adjustedOutputQty / 1000).toFixed(2)} T` : `${transfer.adjustedOutputQty?.toLocaleString()} kg`}
+            </Text>
           </View>
         )}
       </View>
@@ -96,7 +114,9 @@ export default function ProductionDetailScreen({ route }: any) {
                   <Text className="text-stone-400 font-sans text-[11px]">Dest: {out.destinationLocation?.name || 'Silo'}</Text>
                 </View>
                 <View className="items-end">
-                  <Text className="font-displayBold text-amber-600 text-base">{out.adjustedQty || out.calculatedQty} kg</Text>
+                  <Text className="font-displayBold text-amber-600 text-base">
+                    {(out.calculatedQty || 0) >= 1000 ? `${((out.calculatedQty) / 1000).toFixed(2)} T` : `${out.calculatedQty} kg`}
+                  </Text>
                   <Text className="text-stone-400 font-sans text-[10px]">Yield: {out.yieldPercent}%</Text>
                 </View>
               </View>

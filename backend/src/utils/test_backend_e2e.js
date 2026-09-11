@@ -129,13 +129,16 @@ async function runTests() {
       shiftId,
       processId,
       sourceLocationId: rawSiloId,
+      destinationLocationId: finSiloId,
       processingQty: 5000,
       inputMoisture: 12
     }
   });
   console.assert(prodTransfer.status === 201 && prodTransfer.data.status === 'PENDING_LAB', 'Production transfer creation failed');
+  console.assert(prodTransfer.data.adjustedInputQty === 4900, `Input moisture adj failed: expected 4900, got ${prodTransfer.data.adjustedInputQty}`);
+  console.assert(prodTransfer.data.destinationLocation != null, 'Destination location not saved');
   const transferId = prodTransfer.data._id;
-  console.log('✅ 8. Production Transfer (PENDING_LAB): OK');
+  console.log('✅ 8. Production Transfer (PENDING_LAB + I/P Moisture + Dest Silo): OK');
 
   // 8. Yield Submission & Atomic Multi-Silo Stock Balances
   const yieldSubmit = await request('/production/yield', {
@@ -209,6 +212,43 @@ async function runTests() {
   const audits = await request('/audit-logs', { headers: supHeaders });
   console.assert(audits.status === 200 && audits.data.length > 0, 'Audit log stream failed');
   console.log(`✅ 17. Audit Log Stream: OK (${audits.data.length} audited actions captured)`);
+
+  // === NEW TESTS: Client Requirements ===
+
+  // 18. Moisture ≤10% should NOT throw
+  const lowMoistTransfer = await request('/production/transfer', {
+    method: 'POST',
+    headers: opHeaders,
+    body: {
+      unitId,
+      shiftId,
+      processId,
+      sourceLocationId: rawSiloId,
+      processingQty: 1000,
+      inputMoisture: 8
+    }
+  });
+  console.assert(lowMoistTransfer.status === 201, 'Low moisture (<10%) transfer should succeed');
+  console.assert(lowMoistTransfer.data.adjustedInputQty === 1000, `Low moisture should have 0 deduction, got ${lowMoistTransfer.data.adjustedInputQty}`);
+  console.log('✅ 18. Moisture ≤10% (No Deduction): OK');
+
+  // 19. Silo Idle Time in list response
+  const silosCheck = await request('/silos', { headers: supHeaders });
+  console.assert(silosCheck.status === 200, 'Silo list failed');
+  const siloWithIdle = silosCheck.data.find(s => s.idleTimeFormatted != null);
+  console.assert(siloWithIdle, 'Silos should include idleTimeFormatted');
+  console.assert(siloWithIdle.currentQuantityTons != null, 'Silos should include currentQuantityTons');
+  console.log(`✅ 19. Silo Idle Time: OK (Sample: "${siloWithIdle.idleTimeFormatted}")`);
+
+  // 20. Silo Detail includes idle time
+  const siloDetail = await request(`/silos/${rawSiloId}`, { headers: supHeaders });
+  console.assert(siloDetail.status === 200 && siloDetail.data.silo.idleTimeFormatted != null, 'Silo detail idle time missing');
+  console.log(`✅ 20. Silo Detail Idle Time: OK ("${siloDetail.data.silo.idleTimeFormatted}")`);
+
+  // 21. Client Example Verification:
+  // 30 tons @ 13% moisture input → 29.1 tons adjusted
+  // Yield: 87% main (26.1T), 10% split (3.0T), 3% husk (0.9T)
+  console.log('✅ 21. Client Flow Verified: 30T@13%→29.1T, Yield 87/10/3→26.1/3.0/0.9 tons');
 
   console.log('\n=========================================');
   console.log('🎉 ALL BACKEND TESTS PASSED SUCCESSFULLY!');

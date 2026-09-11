@@ -3,6 +3,7 @@ import { View, Text, ScrollView, ActivityIndicator, RefreshControl, TouchableOpa
 import { api, apiErrorMessage } from '../../services/api';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import PrimaryButton from '../../components/feedback/PrimaryButton';
+import StatusBadge from '../../components/status/StatusBadge';
 import { useAuthStore } from '../../store/useAuthStore';
 
 export default function SupervisorDashboard({ navigation }: any) {
@@ -72,6 +73,30 @@ export default function SupervisorDashboard({ navigation }: any) {
 
       <View className="p-6 space-y-6">
 
+        {/* Summary Stats Row */}
+        {data?.summary && (
+          <View className="flex-row space-x-3 mb-2">
+            <View className="flex-1 bg-amber-500 p-4 rounded-2xl">
+              <Text className="text-amber-100 text-[10px] font-sansBold uppercase tracking-wider">Total Stock</Text>
+              <Text className="text-white text-xl font-displayBold mt-1">
+                {data.summary.totalStockTons} <Text className="text-sm font-sans text-amber-100">tons</Text>
+              </Text>
+            </View>
+            <View className="flex-1 bg-white border border-stone-200 p-4 rounded-2xl">
+              <Text className="text-stone-400 text-[10px] font-sansBold uppercase tracking-wider">Silos</Text>
+              <Text className="text-stone-900 text-xl font-displayBold mt-1">
+                {data.summary.totalSilos} <Text className="text-sm font-sans text-stone-400">total</Text>
+              </Text>
+            </View>
+            <View className={`flex-1 p-4 rounded-2xl ${data.summary.idleSilosCount > 0 ? 'bg-red-50 border border-red-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+              <Text className={`text-[10px] font-sansBold uppercase tracking-wider ${data.summary.idleSilosCount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>Idle {'>'}8h</Text>
+              <Text className={`text-xl font-displayBold mt-1 ${data.summary.idleSilosCount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                {data.summary.idleSilosCount}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Quick Navigation Shortcuts Grid */}
         <View className="flex-row flex-wrap justify-between mb-2">
           <TouchableOpacity 
@@ -123,10 +148,15 @@ export default function SupervisorDashboard({ navigation }: any) {
                 onPress={() => navigation.navigate('Yield')}
                 className="bg-amber-50 border border-amber-200 p-4 rounded-2xl mb-3 flex-row justify-between items-center"
               >
-                <View>
+                <View className="flex-1">
                   <Text className="font-sansBold text-amber-900">Pending Lab Yield</Text>
-                  <Text className="text-amber-700 text-xs mt-1 font-sans">Ref: {ex._id.substring(0,6)} • {ex.processingQty.toLocaleString()} kg</Text>
-                  <Text className="text-amber-600 text-[10px] mt-0.5 font-sans">{ex.process?.name} • Source: {ex.sourceLocation?.code}</Text>
+                  <Text className="text-amber-700 text-xs mt-1 font-sans">
+                    {ex.processingQty >= 1000 ? `${(ex.processingQty / 1000).toFixed(1)} tons` : `${ex.processingQty.toLocaleString()} kg`}
+                    {ex.inputMoisture != null ? ` @ ${ex.inputMoisture}% moisture` : ''}
+                  </Text>
+                  <Text className="text-amber-600 text-[10px] mt-0.5 font-sans">
+                    {ex.process?.name} • {ex.sourceLocation?.name}{ex.destinationLocation ? ` → ${ex.destinationLocation?.name}` : ''}
+                  </Text>
                 </View>
                 <View className="bg-amber-500 rounded-full p-1.5">
                   <Feather name="chevron-right" size={16} color="#fff" />
@@ -152,8 +182,9 @@ export default function SupervisorDashboard({ navigation }: any) {
                     {s.materialCode || s.materialName || s.materialId?.substring(0,6)}
                   </Text>
                   <Text className="text-xl font-displayBold text-amber-600" numberOfLines={1} adjustsFontSizeToFit>
-                    {s.netQuantity.toLocaleString()} <Text className="text-xs font-sans text-stone-400">{s.unitOfMeasure || 'kg'}</Text>
+                    {s.netQuantityTons != null ? s.netQuantityTons : (s.netQuantity / 1000).toFixed(1)} <Text className="text-xs font-sans text-stone-400">tons</Text>
                   </Text>
+                  <Text className="text-stone-400 text-[10px] font-sans mt-0.5">{s.netQuantity.toLocaleString()} kg</Text>
                 </View>
               ))
             ) : (
@@ -162,34 +193,42 @@ export default function SupervisorDashboard({ navigation }: any) {
           </View>
         </View>
 
-        {/* Silo / Location Status */}
+        {/* Silo / Location Status with Idle Time */}
         <View>
-          <Text className="text-[13px] font-sansBold text-stone-500 uppercase tracking-wide mb-3">Location Status & Idle Time</Text>
-          {data?.siloStatus?.map((loc: any) => {
-            const idleHours = loc.lastActivityAt 
-              ? Math.floor((new Date().getTime() - new Date(loc.lastActivityAt).getTime()) / (1000 * 3600))
-              : 'Unknown';
-            return (
-              <View key={loc._id} className="bg-white p-4 rounded-2xl mb-3 shadow-sm border border-stone-200 flex-row justify-between items-center">
-                <View className="flex-row items-center">
-                  <View className="bg-amber-500/10 p-2.5 rounded-xl mr-3">
-                    <MaterialCommunityIcons name="silo" size={20} color="#F59E0B" />
+          <Text className="text-[13px] font-sansBold text-stone-500 uppercase tracking-wide mb-3">Silo Status & Idle Time</Text>
+          {data?.siloStatus?.map((loc: any) => (
+            <View key={loc._id} className="bg-white p-4 rounded-2xl mb-3 shadow-sm border border-stone-200">
+              <View className="flex-row justify-between items-center mb-2">
+                <View className="flex-row items-center flex-1">
+                  <View className="bg-amber-500/10 p-2 rounded-xl mr-3">
+                    <MaterialCommunityIcons name="silo" size={18} color="#F59E0B" />
                   </View>
-                  <View>
-                    <Text className="font-sansBold text-stone-800">{loc.name}</Text>
-                    <Text className="text-stone-400 text-xs font-sans">Code: {loc.code} {loc.capacityKg ? `• ${loc.capacityKg.toLocaleString()} kg` : ''}</Text>
+                  <View className="flex-1">
+                    <Text className="font-sansBold text-stone-800" numberOfLines={1}>{loc.name}</Text>
+                    <Text className="text-stone-400 text-[10px] font-sans">
+                      {loc.currentQuantityTons != null ? `${loc.currentQuantityTons} T` : `${(loc.currentQuantityKg || 0).toLocaleString()} kg`}
+                      {loc.capacityKg ? ` / ${(loc.capacityKg / 1000).toFixed(0)} T` : ''}
+                      {loc.fillPercentage != null ? ` (${loc.fillPercentage}%)` : ''}
+                    </Text>
                   </View>
                 </View>
                 <View className="items-end">
-                  <View className="bg-stone-100 px-2.5 py-1 rounded-full">
-                    <Text className={`text-xs font-sansBold ${idleHours !== 'Unknown' && idleHours > 24 ? 'text-amber-600' : 'text-stone-500'}`}>
-                      {idleHours === 'Unknown' ? 'Never active' : `${idleHours} hrs idle`}
+                  {loc.status && <StatusBadge status={loc.status} />}
+                  <View className={`mt-1 px-2.5 py-0.5 rounded-full ${loc.idleTimeMinutes != null && loc.idleTimeMinutes > 480 ? 'bg-red-50' : 'bg-stone-100'}`}>
+                    <Text className={`text-[10px] font-sansBold ${loc.idleTimeMinutes != null && loc.idleTimeMinutes > 480 ? 'text-red-500' : 'text-stone-500'}`}>
+                      ⏱ {loc.idleTimeFormatted || 'No activity'}
                     </Text>
                   </View>
                 </View>
               </View>
-            );
-          })}
+              {/* Mini progress bar */}
+              {loc.fillPercentage != null && (
+                <View className="bg-stone-100 h-1.5 rounded-full overflow-hidden">
+                  <View className="bg-amber-500 h-full rounded-full" style={{ width: `${Math.min(100, loc.fillPercentage)}%` }} />
+                </View>
+              )}
+            </View>
+          ))}
         </View>
 
         {/* Recent Audit Logs Stream */}

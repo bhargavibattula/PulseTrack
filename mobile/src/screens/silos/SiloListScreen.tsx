@@ -5,7 +5,7 @@ import ScreenContainer from '../../components/feedback/ScreenContainer';
 import StatusBadge from '../../components/status/StatusBadge';
 import EmptyState from '../../components/feedback/EmptyState';
 import { api } from '../../services/api';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 
 export default function SiloListScreen({ navigation }: any) {
   const [silos, setSilos] = useState<any[]>([]);
@@ -31,7 +31,7 @@ export default function SiloListScreen({ navigation }: any) {
   return (
     <ScreenContainer scroll={false}>
       <Text className="text-3xl font-displayExtraBold text-stone-900 mb-1">Silos & Locations</Text>
-      <Text className="text-stone-500 font-sans text-sm mb-5">Storage capacity and real-time fill status</Text>
+      <Text className="text-stone-500 font-sans text-sm mb-5">Storage capacity, stock and idle time</Text>
       
       <FlatList
         data={silos}
@@ -50,11 +50,11 @@ export default function SiloListScreen({ navigation }: any) {
             className="bg-white border border-stone-200 rounded-[24px] p-5 mb-3.5 shadow-sm"
           >
             <View className="flex-row items-center justify-between mb-3">
-              <View className="flex-row items-center">
+              <View className="flex-row items-center flex-1">
                 <View className="bg-amber-500/10 p-2.5 rounded-2xl mr-3">
                   <MaterialCommunityIcons name="silo" size={22} color="#F59E0B" />
                 </View>
-                <View>
+                <View className="flex-1">
                   <Text className="font-sansBold text-lg text-stone-900">{item.name}</Text>
                   <Text className="text-stone-400 font-sans text-xs">Code: {item.code}</Text>
                 </View>
@@ -70,12 +70,24 @@ export default function SiloListScreen({ navigation }: any) {
               />
             </View>
 
-            <View className="flex-row justify-between items-center">
+            <View className="flex-row justify-between items-center mb-2">
               <Text className="text-stone-500 font-sans text-xs">
-                Stored: <Text className="font-sansBold text-stone-900">{(item.currentQuantityKg || 0).toLocaleString()} kg</Text>
+                Stored: <Text className="font-sansBold text-stone-900">
+                  {item.currentQuantityTons != null
+                    ? `${item.currentQuantityTons} T`
+                    : `${(item.currentQuantityKg || 0).toLocaleString()} kg`}
+                </Text>
               </Text>
               <Text className="text-stone-400 font-sans text-xs">
-                Cap: {item.capacityKg ? `${item.capacityKg.toLocaleString()} kg` : 'N/A'} ({item.fillPercentage || 0}%)
+                Cap: {item.capacityKg ? `${(item.capacityKg / 1000).toFixed(0)} T` : 'N/A'} ({item.fillPercentage || 0}%)
+              </Text>
+            </View>
+
+            {/* Idle Time Display */}
+            <View className="flex-row items-center mt-1 pt-2 border-t border-stone-100">
+              <Feather name="clock" size={12} color={item.idleTimeMinutes != null && item.idleTimeMinutes > 480 ? '#EF4444' : '#9CA3AF'} />
+              <Text className={`ml-1.5 font-sans text-xs ${item.idleTimeMinutes != null && item.idleTimeMinutes > 480 ? 'text-red-500 font-sansBold' : 'text-stone-400'}`}>
+                {item.idleTimeFormatted || 'No activity'}
               </Text>
             </View>
           </TouchableOpacity>

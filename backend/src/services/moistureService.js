@@ -1,40 +1,88 @@
 /**
- * Calculates moisture deductions based on the confirmed SRS 1.0 rule.
- * Standard moisture is fixed at 10%.
- * Formula: adjusted_qty = qty * (1 - (moisture - 10) / 100)
+ * Moisture calculation engine for Toor Dal Manufacturing.
+ *
+ * Standard moisture base = 10%.
+ * Formula:
+ *   deduction    = rawWeight × max(0, (moisture% − 10) / 100)
+ *   adjustedQty  = rawWeight − deduction
+ *
+ * If moisture ≤ 10%, no deduction is applied (adjusted = raw).
  */
 
-function calculateMoistureAdjustedQuantity(quantityKg, actualMoisturePct) {
+const STANDARD_MOISTURE_BASE = 10;
+
+/**
+ * Core calculation shared by both I/P and O/P paths.
+ * Returns { grossWeightKg, moisturePct, moistureDeductionKg, adjustedNetWeightKg }.
+ */
+function _computeDeduction(rawWeightKg, actualMoisturePct, basePct = STANDARD_MOISTURE_BASE) {
   if (actualMoisturePct == null || isNaN(actualMoisturePct)) {
-    return quantityKg;
+    return {
+      grossWeightKg: rawWeightKg,
+      moisturePct: null,
+      moistureDeductionKg: 0,
+      adjustedNetWeightKg: rawWeightKg
+    };
   }
 
-  if (actualMoisturePct < 10) {
-    throw new Error('Moisture below 10% is not currently supported by business rules. Please configure this rule before proceeding.');
+  // If moisture is at or below the standard, no deduction
+  if (actualMoisturePct <= basePct) {
+    return {
+      grossWeightKg: rawWeightKg,
+      moisturePct: actualMoisturePct,
+      moistureDeductionKg: 0,
+      adjustedNetWeightKg: rawWeightKg
+    };
   }
 
-  const moisturePoints = actualMoisturePct - 10;
-  const deductionKg = quantityKg * (moisturePoints / 100);
-  const adjustedQty = quantityKg - deductionKg;
-
-  return Math.round(adjustedQty * 100) / 100;
-}
-
-function computeMoistureDeduction({ rawWeightKg, actualMoisturePct, targetMoisturePct = 10 }) {
-  const base = targetMoisturePct || 10;
-  if (actualMoisturePct < base) {
-    throw new Error(`Moisture below ${base}% is not supported.`);
-  }
-  const moisturePoints = actualMoisturePct - base;
+  const moisturePoints = actualMoisturePct - basePct;
   const moistureDeductionKg = Math.round((rawWeightKg * (moisturePoints / 100)) * 100) / 100;
   const adjustedNetWeightKg = Math.round((rawWeightKg - moistureDeductionKg) * 100) / 100;
 
   return {
-    rawWeightKg,
-    actualMoisturePct,
+    grossWeightKg: rawWeightKg,
+    moisturePct: actualMoisturePct,
     moistureDeductionKg,
     adjustedNetWeightKg
   };
 }
 
-module.exports = { calculateMoistureAdjustedQuantity, computeMoistureDeduction };
+/**
+ * Calculate moisture-adjusted quantity (simple scalar return for backward compat).
+ * Used by intake, production transfer creation, etc.
+ */
+function calculateMoistureAdjustedQuantity(quantityKg, actualMoisturePct) {
+  const result = _computeDeduction(quantityKg, actualMoisturePct);
+  return result.adjustedNetWeightKg;
+}
+
+/**
+ * Full I/P (Input) moisture calculation.
+ * Example: 30 tons @ 13% → deduction = 30 × 3% = 0.9 tons → adjusted = 29.1 tons
+ */
+function calculateInputMoistureDeduction({ rawWeightKg, actualMoisturePct, targetMoisturePct }) {
+  return _computeDeduction(rawWeightKg, actualMoisturePct, targetMoisturePct || STANDARD_MOISTURE_BASE);
+}
+
+/**
+ * Full O/P (Output) moisture calculation.
+ * Example: 30 tons @ 12% → deduction = 30 × 2% = 0.6 tons → adjusted = 29.4 tons
+ */
+function calculateOutputMoistureDeduction({ rawWeightKg, actualMoisturePct, targetMoisturePct }) {
+  return _computeDeduction(rawWeightKg, actualMoisturePct, targetMoisturePct || STANDARD_MOISTURE_BASE);
+}
+
+/**
+ * Legacy wrapper kept for backward compatibility with existing intake controller.
+ */
+function computeMoistureDeduction({ rawWeightKg, actualMoisturePct, targetMoisturePct = 10 }) {
+  return _computeDeduction(rawWeightKg, actualMoisturePct, targetMoisturePct);
+}
+
+module.exports = {
+  STANDARD_MOISTURE_BASE,
+  calculateMoistureAdjustedQuantity,
+  calculateInputMoistureDeduction,
+  calculateOutputMoistureDeduction,
+  computeMoistureDeduction
+};

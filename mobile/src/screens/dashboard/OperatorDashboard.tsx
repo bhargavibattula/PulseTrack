@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { api, apiErrorMessage } from '../../services/api';
-import { Feather } from '@expo/vector-icons';
+import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/useAuthStore';
 
 export default function OperatorDashboard({ navigation }: any) {
@@ -92,7 +92,7 @@ export default function OperatorDashboard({ navigation }: any) {
               <Text className="text-stone-800 font-sansBold text-base">Lab Yield</Text>
               <Text className="text-stone-400 text-xs font-sans">Submit Lab %</Text>
             </View>
-            <Feather name="flask" size={20} color="#F59E0B" />
+            <FontAwesome5 name="flask" size={18} color="#F59E0B" />
           </TouchableOpacity>
         </View>
         
@@ -112,10 +112,20 @@ export default function OperatorDashboard({ navigation }: any) {
                 onPress={() => navigation.navigate('Yield')}
                 className="bg-white p-4 rounded-2xl mb-3 shadow-sm border border-stone-200 flex-row justify-between items-center"
               >
-                <View>
-                  <Text className="font-sansBold text-stone-900">Ref: {entry._id.substring(0,6)}</Text>
-                  <Text className="text-stone-500 text-sm mt-0.5 font-sans">Input Qty: <Text className="font-sansBold text-stone-800">{entry.processingQty.toLocaleString()} kg</Text></Text>
-                  <Text className="text-stone-400 text-xs mt-0.5 font-sans">{entry.process?.name || 'Process'} • Source: {entry.sourceLocation?.code || 'N/A'}</Text>
+                <View className="flex-1">
+                  <Text className="font-sansBold text-stone-900">
+                    {entry.processingQty >= 1000 ? `${(entry.processingQty / 1000).toFixed(1)} tons` : `${entry.processingQty.toLocaleString()} kg`}
+                    {entry.inputMoisture != null ? ` @ ${entry.inputMoisture}%` : ''}
+                  </Text>
+                  <Text className="text-stone-500 text-xs mt-0.5 font-sans">
+                    {entry.process?.name || 'Process'} • {entry.sourceLocation?.name || 'Source'}
+                    {entry.destinationLocation ? ` → ${entry.destinationLocation?.name}` : ''}
+                  </Text>
+                  {entry.inputMoisture != null && entry.adjustedInputQty != null && (
+                    <Text className="text-amber-600 text-[10px] mt-0.5 font-sans">
+                      Adjusted: {entry.adjustedInputQty >= 1000 ? `${(entry.adjustedInputQty / 1000).toFixed(2)} T` : `${entry.adjustedInputQty} kg`} (10% Std)
+                    </Text>
+                  )}
                 </View>
                 <View className="bg-amber-500/10 px-3 py-1.5 rounded-full">
                   <Text className="text-amber-700 text-xs font-sansBold">AWAITING YIELD</Text>
@@ -129,6 +139,36 @@ export default function OperatorDashboard({ navigation }: any) {
           )}
         </View>
 
+        {/* Silo Status with Idle Time */}
+        {data?.siloStatus?.length > 0 && (
+          <View>
+            <Text className="text-[13px] font-sansBold text-stone-500 uppercase tracking-wide mb-3">Silo Status & Idle Time</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+              {data.siloStatus.map((silo: any) => (
+                <View 
+                  key={silo._id} 
+                  className={`bg-white border rounded-2xl p-3.5 mr-3 shadow-sm ${silo.idleTimeMinutes != null && silo.idleTimeMinutes > 480 ? 'border-red-200' : 'border-stone-200'}`}
+                  style={{ width: 160 }}
+                >
+                  <View className="flex-row items-center mb-2">
+                    <MaterialCommunityIcons name="silo" size={16} color="#F59E0B" />
+                    <Text className="font-sansBold text-stone-800 text-xs ml-1.5 flex-1" numberOfLines={1}>{silo.name}</Text>
+                  </View>
+                  <Text className="font-displayBold text-amber-600 text-base">
+                    {silo.currentQuantityTons != null ? `${silo.currentQuantityTons} T` : `${(silo.currentQuantityKg || 0).toLocaleString()} kg`}
+                  </Text>
+                  <View className="flex-row items-center mt-1.5">
+                    <Feather name="clock" size={10} color={silo.idleTimeMinutes != null && silo.idleTimeMinutes > 480 ? '#EF4444' : '#9CA3AF'} />
+                    <Text className={`ml-1 text-[10px] font-sans ${silo.idleTimeMinutes != null && silo.idleTimeMinutes > 480 ? 'text-red-500 font-sansBold' : 'text-stone-400'}`}>
+                      {silo.idleTimeFormatted || 'No activity'}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Operational Stock Summary Section */}
         <View>
           <Text className="text-[13px] font-sansBold text-stone-500 uppercase tracking-wide mb-3">Operational Stock Summary</Text>
@@ -140,8 +180,9 @@ export default function OperatorDashboard({ navigation }: any) {
                     {stock.materialCode || stock.materialName || stock.materialId?.substring(0,6)}
                   </Text>
                   <Text className="text-xl font-displayBold text-amber-600" numberOfLines={1} adjustsFontSizeToFit>
-                    {stock.netQuantity.toLocaleString()} <Text className="text-xs font-sans text-stone-400">{stock.unitOfMeasure || 'kg'}</Text>
+                    {stock.netQuantityTons != null ? stock.netQuantityTons : (stock.netQuantity / 1000).toFixed(1)} <Text className="text-xs font-sans text-stone-400">tons</Text>
                   </Text>
+                  <Text className="text-stone-400 text-[10px] font-sans mt-0.5">{stock.netQuantity.toLocaleString()} kg</Text>
                 </View>
               ))
             ) : (

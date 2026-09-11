@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import ScreenContainer from '../../components/feedback/ScreenContainer';
 import StatusBadge from '../../components/status/StatusBadge';
 import { api, apiErrorMessage } from '../../services/api';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 
 export default function SiloDetailScreen({ route }: any) {
   const { siloId } = route.params;
@@ -47,8 +47,30 @@ export default function SiloDetailScreen({ route }: any) {
 
         <View className="flex-row justify-between items-center mt-3 pt-3 border-t border-stone-100">
           <Text className="text-stone-500 font-sans text-sm">Capacity</Text>
-          <Text className="font-displayBold text-stone-900 text-base">{silo.capacityKg ? `${silo.capacityKg.toLocaleString()} kg` : 'N/A'}</Text>
+          <Text className="font-displayBold text-stone-900 text-base">
+            {silo.capacityKg ? `${(silo.capacityKg / 1000).toFixed(0)} tons (${silo.capacityKg.toLocaleString()} kg)` : 'N/A'}
+          </Text>
         </View>
+
+        {/* Idle Time */}
+        <View className="flex-row justify-between items-center mt-2 pt-2 border-t border-stone-100">
+          <View className="flex-row items-center">
+            <Feather name="clock" size={14} color={silo.idleTimeMinutes != null && silo.idleTimeMinutes > 480 ? '#EF4444' : '#9CA3AF'} />
+            <Text className="text-stone-500 font-sans text-sm ml-1.5">Idle Time</Text>
+          </View>
+          <Text className={`font-sansBold text-sm ${silo.idleTimeMinutes != null && silo.idleTimeMinutes > 480 ? 'text-red-500' : 'text-stone-700'}`}>
+            {silo.idleTimeFormatted || 'No activity recorded'}
+          </Text>
+        </View>
+
+        {silo.lastActivityAt && (
+          <View className="flex-row justify-between items-center mt-2 pt-2 border-t border-stone-100">
+            <Text className="text-stone-500 font-sans text-sm">Last Activity</Text>
+            <Text className="text-stone-700 font-sans text-sm">
+              {new Date(silo.lastActivityAt).toLocaleString()}
+            </Text>
+          </View>
+        )}
       </View>
 
       <Text className="text-stone-500 font-sansBold text-[13px] uppercase tracking-wide mb-3">Location Stock Activity</Text>
@@ -63,9 +85,13 @@ export default function SiloDetailScreen({ route }: any) {
         }
         renderItem={({ item }) => {
           const isCredit = item.direction === 'IN';
+          const qtyDisplay = item.quantity >= 1000
+            ? `${(item.quantity / 1000).toFixed(2)} T`
+            : `${item.quantity?.toLocaleString()} kg`;
+
           return (
             <View className="bg-white border border-stone-200 rounded-2xl p-4 mb-2.5 shadow-sm flex-row justify-between items-center">
-              <View>
+              <View className="flex-1">
                 <View className="flex-row items-center space-x-2">
                   <View className={`px-2 py-0.5 rounded ${isCredit ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
                     <Text className={`text-[10px] font-sansBold ${isCredit ? 'text-emerald-700' : 'text-rose-700'}`}>
@@ -81,7 +107,7 @@ export default function SiloDetailScreen({ route }: any) {
                 </Text>
               </View>
               <Text className={`font-displayBold text-base ${isCredit ? 'text-emerald-600' : 'text-stone-900'}`}>
-                {isCredit ? '+' : '-'}{item.quantity?.toLocaleString()} kg
+                {isCredit ? '+' : '-'}{qtyDisplay}
               </Text>
             </View>
           );

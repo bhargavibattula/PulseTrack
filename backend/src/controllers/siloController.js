@@ -7,6 +7,37 @@ const { Errors } = require('../utils/errors');
 
 const SILO_STATUSES = ['EMPTY', 'FILLING', 'FULL', 'IDLE', 'MAINTENANCE'];
 
+/**
+ * Formats idle time from a lastActivityAt date to a human-readable string.
+ * Returns { idleTimeMinutes, idleTimeFormatted }
+ */
+function computeIdleTime(lastActivityAt) {
+  if (!lastActivityAt) {
+    return { idleTimeMinutes: null, idleTimeFormatted: 'No activity recorded' };
+  }
+
+  const now = new Date();
+  const diffMs = now.getTime() - new Date(lastActivityAt).getTime();
+  const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
+
+  let formatted;
+  if (diffMinutes < 1) {
+    formatted = 'Active now';
+  } else if (diffMinutes < 60) {
+    formatted = `${diffMinutes}m idle`;
+  } else if (diffMinutes < 1440) {
+    const hours = Math.floor(diffMinutes / 60);
+    const mins = diffMinutes % 60;
+    formatted = mins > 0 ? `${hours}h ${mins}m idle` : `${hours}h idle`;
+  } else {
+    const days = Math.floor(diffMinutes / 1440);
+    const hours = Math.floor((diffMinutes % 1440) / 60);
+    formatted = hours > 0 ? `${days}d ${hours}h idle` : `${days}d idle`;
+  }
+
+  return { idleTimeMinutes: diffMinutes, idleTimeFormatted: formatted };
+}
+
 async function listSilos(req, res, next) {
   try {
     const filter = { isActive: true };
@@ -39,11 +70,18 @@ async function listSilos(req, res, next) {
       if (fillPercentage >= 90) status = 'FULL';
       else if (fillPercentage > 0) status = 'FILLING';
 
+      // Compute idle time from lastActivityAt
+      const { idleTimeMinutes, idleTimeFormatted } = computeIdleTime(loc.lastActivityAt);
+
       return {
         ...loc,
         currentQuantityKg: currentQty,
+        currentQuantityTons: Math.round((currentQty / 1000) * 100) / 100,
         fillPercentage,
-        status
+        status,
+        idleTimeMinutes,
+        idleTimeFormatted,
+        lastActivityAt: loc.lastActivityAt
       };
     });
 
@@ -76,15 +114,25 @@ async function createSilo(req, res, next) {
 
 async function getSilo(req, res, next) {
   try {
-    const silo = await Location.findById(req.params.id).populate('unit');
+    const silo = await Location.findById(req.params.id).populate('unit').lean();
     if (!silo) throw Errors.notFound('Silo/Location not found.');
+
+    // Compute idle time
+    const { idleTimeMinutes, idleTimeFormatted } = computeIdleTime(silo.lastActivityAt);
     
     const transactions = await StockTransaction.find({ location: silo._id })
       .sort({ created_at: -1 })
       .limit(50)
       .populate('createdBy material');
       
-    return ok(res, { silo, transactions });
+    return ok(res, {
+      silo: {
+        ...silo,
+        idleTimeMinutes,
+        idleTimeFormatted
+      },
+      transactions
+    });
   } catch (err) {
     next(err);
   }

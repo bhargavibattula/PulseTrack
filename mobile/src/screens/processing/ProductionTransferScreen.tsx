@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, Alert, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import NumericInput from '../../components/inputs/NumericInput';
 import PrimaryButton from '../../components/feedback/PrimaryButton';
@@ -22,6 +22,7 @@ export default function ProductionTransferScreen({ navigation }: any) {
   const [selectedShift, setSelectedShift] = useState<string>('');
   const [selectedProcess, setSelectedProcess] = useState<string>('');
   const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [destinationLocation, setDestinationLocation] = useState<string>('');
   const [processingQty, setProcessingQty] = useState('');
   const [inputMoisture, setInputMoisture] = useState('');
 
@@ -38,7 +39,10 @@ export default function ProductionTransferScreen({ navigation }: any) {
         if (data.units?.length > 0) setSelectedUnit(data.units[0]._id);
         if (data.shifts?.length > 0) setSelectedShift(data.shifts[0]._id);
         if (data.processes?.length > 0) setSelectedProcess(data.processes[0]._id);
-        if (data.locations?.length > 0) setSelectedLocation(data.locations[0]._id);
+        if (data.locations?.length > 0) {
+          setSelectedLocation(data.locations[0]._id);
+          if (data.locations.length > 1) setDestinationLocation(data.locations[1]._id);
+        }
       } catch (err) {
         setError(apiErrorMessage(err));
       } finally {
@@ -47,6 +51,31 @@ export default function ProductionTransferScreen({ navigation }: any) {
     }
     loadMasterData();
   }, []);
+
+  // Live moisture preview calculation
+  const moisturePreview = useMemo(() => {
+    const qty = parseFloat(processingQty);
+    const moisture = parseFloat(inputMoisture);
+    if (isNaN(qty) || qty <= 0) return null;
+
+    if (isNaN(moisture) || inputMoisture.trim() === '') {
+      return { grossKg: qty, deductionKg: 0, adjustedKg: qty, moisturePct: null, message: 'No moisture entered — full weight retained' };
+    }
+
+    if (moisture <= 10) {
+      return { grossKg: qty, deductionKg: 0, adjustedKg: qty, moisturePct: moisture, message: `Standard moisture (${moisture}% ≤ 10%) — No deduction` };
+    }
+
+    const deduction = qty * ((moisture - 10) / 100);
+    const adjusted = qty - deduction;
+    return {
+      grossKg: qty,
+      deductionKg: Math.round(deduction * 100) / 100,
+      adjustedKg: Math.round(adjusted * 100) / 100,
+      moisturePct: moisture,
+      message: null
+    };
+  }, [processingQty, inputMoisture]);
 
   const handleSubmit = async () => {
     setError(null);
@@ -68,10 +97,6 @@ export default function ProductionTransferScreen({ navigation }: any) {
         setError('Moisture must be between 0% and 100%.');
         return;
       }
-      if (moistureNum < 10) {
-        setError('Moisture below 10% is not currently supported by business rules.');
-        return;
-      }
     }
 
     setLoading(true);
@@ -81,6 +106,7 @@ export default function ProductionTransferScreen({ navigation }: any) {
         shiftId: selectedShift,
         processId: selectedProcess,
         sourceLocationId: selectedLocation,
+        destinationLocationId: destinationLocation || undefined,
         processingQty: qty,
         inputMoisture: moistureNum
       });
@@ -115,7 +141,7 @@ export default function ProductionTransferScreen({ navigation }: any) {
     <ScrollView className="flex-1 bg-stone-50 p-6">
       <View className="bg-white p-6 rounded-[24px] shadow-sm border border-stone-200 mb-6">
         <Text className="text-2xl font-displayExtraBold mb-1 text-stone-900">New Production Transfer</Text>
-        <Text className="text-stone-500 mb-6 font-sans text-sm">Enter processing quantity and source location</Text>
+        <Text className="text-stone-500 mb-6 font-sans text-sm">Enter processing quantity, source and destination locations</Text>
         
         <ErrorBanner message={error} />
 
@@ -126,7 +152,7 @@ export default function ProductionTransferScreen({ navigation }: any) {
             <TouchableOpacity
               key={p._id}
               onPress={() => setSelectedProcess(p._id)}
-              className={`px-4 py-2.5 rounded-2xl border ${selectedProcess === p._id ? 'bg-amber-500 border-amber-500' : 'bg-stone-100 border-stone-200'}`}
+              className={`px-4 py-2.5 rounded-2xl border mr-2 ${selectedProcess === p._id ? 'bg-amber-500 border-amber-500' : 'bg-stone-100 border-stone-200'}`}
             >
               <Text className={`font-sansBold text-xs ${selectedProcess === p._id ? 'text-white' : 'text-stone-700'}`}>
                 {p.name}
@@ -136,16 +162,32 @@ export default function ProductionTransferScreen({ navigation }: any) {
         </ScrollView>
 
         {/* Source Location Selection */}
-        <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Source Silo / Location</Text>
+        <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Source Silo (From)</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5 flex-row space-x-2">
           {locations.map((loc) => (
             <TouchableOpacity
               key={loc._id}
               onPress={() => setSelectedLocation(loc._id)}
-              className={`px-4 py-2.5 rounded-2xl border ${selectedLocation === loc._id ? 'bg-stone-900 border-stone-900' : 'bg-stone-100 border-stone-200'}`}
+              className={`px-4 py-2.5 rounded-2xl border mr-2 ${selectedLocation === loc._id ? 'bg-stone-900 border-stone-900' : 'bg-stone-100 border-stone-200'}`}
             >
               <Text className={`font-sansBold text-xs ${selectedLocation === loc._id ? 'text-white' : 'text-stone-700'}`}>
-                {loc.name} ({loc.code})
+                {loc.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Destination Location Selection */}
+        <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Destination Silo (To) — Optional</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5 flex-row space-x-2">
+          {locations.filter(loc => loc._id !== selectedLocation).map((loc) => (
+            <TouchableOpacity
+              key={loc._id}
+              onPress={() => setDestinationLocation(loc._id)}
+              className={`px-4 py-2.5 rounded-2xl border mr-2 ${destinationLocation === loc._id ? 'bg-emerald-500 border-emerald-500' : 'bg-stone-100 border-stone-200'}`}
+            >
+              <Text className={`font-sansBold text-xs ${destinationLocation === loc._id ? 'text-white' : 'text-stone-700'}`}>
+                {loc.name}
               </Text>
             </TouchableOpacity>
           ))}
@@ -177,14 +219,46 @@ export default function ProductionTransferScreen({ navigation }: any) {
         />
 
         <NumericInput
-          label="Input Moisture (Optional, Std 10%)"
+          label="Input Moisture (I/P, Std 10%)"
           suffix="%"
           value={inputMoisture}
           onChangeText={setInputMoisture}
           placeholder="e.g. 13"
         />
 
-        <View className="mt-4">
+        {/* Live Moisture Preview Banner */}
+        {moisturePreview && (
+          <View className={`p-4 rounded-2xl mb-4 border ${moisturePreview.deductionKg > 0 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-50 border-emerald-200'}`}>
+            {moisturePreview.message ? (
+              <Text className={`font-sansBold text-xs ${moisturePreview.deductionKg > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                ✓ {moisturePreview.message}
+              </Text>
+            ) : (
+              <>
+                <View className="flex-row justify-between mb-1">
+                  <Text className="text-xs text-stone-600 font-sans">Gross Weight</Text>
+                  <Text className="font-sansBold text-stone-900 text-xs">
+                    {moisturePreview.grossKg >= 1000 ? `${(moisturePreview.grossKg / 1000).toFixed(1)} tons` : `${moisturePreview.grossKg.toLocaleString()} kg`}
+                  </Text>
+                </View>
+                <View className="flex-row justify-between mb-1">
+                  <Text className="text-xs text-stone-600 font-sans">Moisture Deduction ({moisturePreview.moisturePct}% − 10% = {(moisturePreview.moisturePct! - 10)}%)</Text>
+                  <Text className="font-sansBold text-red-600 text-xs">
+                    −{moisturePreview.deductionKg >= 1000 ? `${(moisturePreview.deductionKg / 1000).toFixed(2)} tons` : `${moisturePreview.deductionKg} kg`}
+                  </Text>
+                </View>
+                <View className="flex-row justify-between pt-1 border-t border-amber-200/50">
+                  <Text className="text-xs text-stone-600 font-sansBold">Adjusted Net Weight</Text>
+                  <Text className="font-displayBold text-amber-700 text-sm">
+                    {moisturePreview.adjustedKg >= 1000 ? `${(moisturePreview.adjustedKg / 1000).toFixed(2)} tons` : `${moisturePreview.adjustedKg.toLocaleString()} kg`}
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+        )}
+
+        <View className="mt-2">
           <PrimaryButton 
             label="Record Production Transfer" 
             onPress={handleSubmit} 

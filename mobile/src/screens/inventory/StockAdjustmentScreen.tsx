@@ -98,8 +98,27 @@ export default function StockAdjustmentScreen({ navigation }: any) {
     <ScrollView className="flex-1 bg-stone-50 p-6">
       <View className="bg-white p-6 rounded-[24px] shadow-sm border border-stone-200 mb-6">
         <Text className="text-2xl font-displayExtraBold mb-1 text-stone-900">Stock Adjustment</Text>
-        <Text className="text-stone-500 mb-6 font-sans text-sm">Direct manual correction with mandatory audit reason</Text>
+        <Text className="text-stone-500 mb-4 font-sans text-sm">Direct manual correction with mandatory audit reason</Text>
         
+        {/* Manual vs Auto Entry Guidance */}
+        <View className="bg-blue-50 p-4 rounded-2xl mb-5 border border-blue-100">
+          <View className="flex-row items-start mb-2">
+            <Feather name="info" size={14} color="#3B82F6" style={{ marginTop: 2 }} />
+            <Text className="text-blue-800 font-sansBold text-xs ml-2">When to use Manual Adjustments</Text>
+          </View>
+          <Text className="text-blue-700 font-sans text-[11px] leading-4 mb-1.5">
+            • <Text className="font-sansBold">Physical count correction:</Text> Reconcile dip/scale readings with system stock (e.g. spillage, evaporation).
+          </Text>
+          <Text className="text-blue-700 font-sans text-[11px] leading-4 mb-1.5">
+            • <Text className="font-sansBold">Direct silo transfer:</Text> Moving material between silos without a milling process.
+          </Text>
+          <View className="bg-blue-100/50 p-2.5 rounded-xl mt-1">
+            <Text className="text-blue-600 font-sans text-[10px] italic">
+              ℹ Stock from Intake, Production and Lab Yield is posted automatically by the system.
+            </Text>
+          </View>
+        </View>
+
         <ErrorBanner message={error} />
 
         {/* Direction Switcher */}

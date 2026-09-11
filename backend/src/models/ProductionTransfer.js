@@ -6,9 +6,12 @@ const productionTransferSchema = new mongoose.Schema(
     shift: { type: mongoose.Schema.Types.ObjectId, ref: 'Shift', required: true },
     process: { type: mongoose.Schema.Types.ObjectId, ref: 'Process', required: true },
     sourceLocation: { type: mongoose.Schema.Types.ObjectId, ref: 'Location', required: true },
-    processingQty: { type: Number, required: true, min: 0 },
-    inputMoisture: { type: Number, min: 0, max: 100, default: null },
-    adjustedInputQty: { type: Number, default: null },
+    destinationLocation: { type: mongoose.Schema.Types.ObjectId, ref: 'Location', default: null },
+    processingQty: { type: Number, required: true, min: 0 },           // Physical / gross weight
+    inputMoisture: { type: Number, min: 0, max: 100, default: null },   // I/P moisture %
+    adjustedInputQty: { type: Number, default: null },                  // Moisture-adjusted I/P weight
+    outputMoisture: { type: Number, min: 0, max: 100, default: null },  // O/P moisture %
+    adjustedOutputQty: { type: Number, default: null },                 // Moisture-adjusted O/P weight
     status: { 
       type: String, 
       enum: ['PENDING_LAB', 'COMPLETED', 'REVERSED'], 

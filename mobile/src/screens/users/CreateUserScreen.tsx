@@ -31,7 +31,7 @@ export default function CreateUserScreen({ navigation }: any) {
         email,
         password,
         role,
-        unitId: currentUser?.unit?._id || currentUser?.unit
+        unitId: (typeof currentUser?.unit === 'object' && currentUser?.unit !== null ? (currentUser.unit as any)._id : currentUser?.unit)
       });
 
       Alert.alert('Success', `User profile created for ${name} (${role})! They can now log in.`, [

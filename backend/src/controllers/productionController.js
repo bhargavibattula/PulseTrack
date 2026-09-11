@@ -3,7 +3,7 @@ const YieldResult = require('../models/YieldResult');
 const YieldOutput = require('../models/YieldOutput');
 const Material = require('../models/Material');
 const { calculateMoistureAdjustedQuantity } = require('../services/moistureService');
-const { validateYieldTotal, calculateYieldOutputs } = require('../services/yieldService');
+const { validateYieldTotal, deriveMainYieldPercent, calculateYieldOutputs } = require('../services/yieldService');
 const { recordStockTransactions } = require('../services/stockEngine');
 const mongoose = require('mongoose');
 const { ok, created } = require('../utils/response');
@@ -12,9 +12,10 @@ const { writeAudit } = require('../services/auditService');
 
 exports.createTransfer = async (req, res, next) => {
   try {
-    const { unitId, shiftId, processId, sourceLocationId, processingQty, inputMoisture } = req.body;
+    const { unitId, shiftId, processId, sourceLocationId, destinationLocationId, processingQty, inputMoisture } = req.body;
     const unit = unitId || req.user.unit;
     
+    // Moisture-adjusted input weight (I/P pool)
     let adjustedInputQty = processingQty;
     if (inputMoisture != null) {
       adjustedInputQty = calculateMoistureAdjustedQuantity(processingQty, inputMoisture);
@@ -25,6 +26,7 @@ exports.createTransfer = async (req, res, next) => {
       shift: shiftId,
       process: processId,
       sourceLocation: sourceLocationId,
+      destinationLocation: destinationLocationId || null,
       processingQty,
       inputMoisture,
       adjustedInputQty,
@@ -51,14 +53,21 @@ exports.createTransfer = async (req, res, next) => {
 
 exports.submitYield = async (req, res, next) => {
   try {
-    const { transferId, totalYieldPercent, outputs } = req.body;
+    const { transferId, totalYieldPercent, outputs, outputMoisture } = req.body;
 
     const transfer = await ProductionTransfer.findById(transferId);
     if (!transfer) throw Errors.notFound('Transfer not found');
     if (transfer.status !== 'PENDING_LAB') throw Errors.validation('Yield already submitted for this transfer');
 
-    validateYieldTotal(outputs, totalYieldPercent);
-    const calculatedOutputs = calculateYieldOutputs(transfer.processingQty, outputs);
+    // Use the physical processing qty for yield calculations (client requirement:
+    // "qty of material processed × yield entered by lab")
+    const processingBase = transfer.processingQty;
+
+    // Validate yield total
+    validateYieldTotal(outputs, totalYieldPercent || 100);
+
+    // Calculate output quantities (physical + moisture-adjusted)
+    const calculatedOutputs = calculateYieldOutputs(processingBase, outputs);
 
     // Identify raw material for debiting source location
     const rawMaterial = await Material.findOne({ type: 'RAW', isActive: true }) || await Material.findOne({ isActive: true });
@@ -68,7 +77,7 @@ exports.submitYield = async (req, res, next) => {
     try {
       const yieldResult = new YieldResult({
         productionTransfer: transferId,
-        totalYieldPercent,
+        totalYieldPercent: totalYieldPercent || 100,
         enteredBy: req.user.id
       });
       await yieldResult.save({ session });
@@ -85,7 +94,10 @@ exports.submitYield = async (req, res, next) => {
       }));
       await YieldOutput.insertMany(yieldOutputDocs, { session });
 
+      // Build stock transactions: debit source, credit all destinations
       const transactions = [];
+
+      // OUT from source silo — use moisture-adjusted input qty for stock deduction
       transactions.push({
         unit: transfer.unit,
         location: transfer.sourceLocation,
@@ -98,18 +110,26 @@ exports.submitYield = async (req, res, next) => {
         createdBy: req.user.id
       });
 
+      // IN to each destination silo — use the calculated qty (physical yield)
+      // Stock is posted as the yield-calculated quantity
       for (const output of yieldOutputDocs) {
         transactions.push({
           unit: transfer.unit,
           location: output.destinationLocation,
           material: output.material,
           direction: 'IN',
-          quantity: output.adjustedQty || output.calculatedQty,
+          quantity: output.calculatedQty,
           transactionType: 'YIELD',
           referenceType: 'YieldOutput',
           referenceId: output._id,
           createdBy: req.user.id
         });
+      }
+
+      // Save O/P moisture on the transfer if provided
+      if (outputMoisture != null) {
+        transfer.outputMoisture = outputMoisture;
+        transfer.adjustedOutputQty = calculateMoistureAdjustedQuantity(processingBase, outputMoisture);
       }
 
       transfer.status = 'COMPLETED';
@@ -118,6 +138,19 @@ exports.submitYield = async (req, res, next) => {
       await recordStockTransactions(transactions, session);
       
       await session.commitTransaction();
+
+      await writeAudit({
+        userId: req.user.id,
+        entityType: 'YieldResult',
+        entityId: yieldResult._id,
+        action: 'YIELD_SUBMITTED',
+        newValue: {
+          yieldResult: yieldResult.toObject(),
+          outputs: yieldOutputDocs,
+          stockTransactions: transactions.length
+        },
+        unitId: transfer.unit
+      });
 
       return ok(res, { yieldResult });
     } catch (err) {
@@ -138,7 +171,7 @@ exports.getPendingLab = async (req, res, next) => {
     if (unitId) query.unit = unitId;
 
     const transfers = await ProductionTransfer.find(query)
-      .populate('process shift sourceLocation createdBy unit')
+      .populate('process shift sourceLocation destinationLocation createdBy unit')
       .sort({ created_at: -1 })
       .lean();
 
@@ -156,7 +189,7 @@ exports.listTransfers = async (req, res, next) => {
     if (req.query.status) query.status = req.query.status;
 
     const transfers = await ProductionTransfer.find(query)
-      .populate('process shift sourceLocation createdBy unit')
+      .populate('process shift sourceLocation destinationLocation createdBy unit')
       .sort({ created_at: -1 })
       .lean();
 
@@ -170,7 +203,7 @@ exports.getTransferById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const transfer = await ProductionTransfer.findById(id)
-      .populate('process shift sourceLocation createdBy unit')
+      .populate('process shift sourceLocation destinationLocation createdBy unit')
       .lean();
 
     if (!transfer) throw Errors.notFound('Production transfer not found');
