@@ -15,6 +15,7 @@ const labRoutes = require('./routes/labRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const byproductRoutes = require('./routes/byproductRoutes');
 
 const productionRoutes = require('./routes/productionRoutes');
 const stockRoutes = require('./routes/stockRoutes');
@@ -43,6 +44,7 @@ app.use('/api/v1/silos', siloRoutes);
 app.use('/api/v1/shifts', shiftRoutes);
 app.use('/api/v1/transfers', transferRoutes);
 app.use('/api/v1/dispatch', dispatchRoutes);
+app.use('/api/v1/byproducts', byproductRoutes);
 app.use('/api/v1/lab-tests', labRoutes);
 app.use('/api/v1/audit-logs', auditRoutes);
 app.use('/api/v1/reports', reportRoutes);

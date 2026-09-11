@@ -202,6 +202,10 @@ exports.listTransfers = async (req, res, next) => {
 exports.getTransferById = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw Errors.notFound('Production transfer not found');
+    }
     const transfer = await ProductionTransfer.findById(id)
       .populate('process shift sourceLocation destinationLocation createdBy unit')
       .lean();

@@ -16,8 +16,14 @@ export default function DispatchScreen() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const load = useCallback(() => {
-    api.get('/dispatch').then((res) => setDispatches(res.data.data));
+  const load = useCallback(async () => {
+    try {
+      const res = await api.get('/dispatch');
+      setDispatches(res.data.data || []);
+      setError(null);
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
   }, []);
 
   useFocusEffect(

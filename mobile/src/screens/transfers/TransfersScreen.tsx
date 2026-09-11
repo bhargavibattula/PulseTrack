@@ -19,9 +19,18 @@ export default function TransfersScreen() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const load = useCallback(() => {
-    api.get('/units').then((res) => setUnits(res.data.data));
-    api.get('/transfers').then((res) => setTransfers(res.data.data));
+  const load = useCallback(async () => {
+    try {
+      const [uRes, tRes] = await Promise.all([
+        api.get('/units'),
+        api.get('/transfers')
+      ]);
+      setUnits(uRes.data.data || []);
+      setTransfers(tRes.data.data || []);
+      setError(null);
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
   }, []);
 
   useFocusEffect(
