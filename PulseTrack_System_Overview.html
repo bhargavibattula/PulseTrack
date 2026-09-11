@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PulseTrack — System Overview & Client Implementation Report</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
@@ -25,7 +26,7 @@
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       color: var(--text);
-      background: #FFFFFF;
+      background: #F8FAFC;
       line-height: 1.55;
       font-size: 13.5px;
       -webkit-print-color-adjust: exact;
@@ -34,14 +35,17 @@
 
     .page {
       max-width: 860px;
-      margin: 0 auto;
+      margin: 24px auto;
       padding: 36px 44px;
+      background: #FFFFFF;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
     }
 
     /* Print styling */
     @media print {
       body { background: white; }
-      .page { padding: 20px 24px; max-width: 100%; }
+      .page { padding: 20px 24px; max-width: 100%; margin: 0; box-shadow: none; border-radius: 0; }
       .no-print { display: none !important; }
       .page-break { page-break-before: always; }
     }
@@ -53,6 +57,8 @@
       border-bottom: 2px solid var(--primary);
       padding-bottom: 18px;
       margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
     }
 
     .logo-area h1 {
@@ -164,6 +170,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
     }
 
     .card p {
@@ -181,13 +189,23 @@
       font-size: 11.5px;
       color: #0F172A;
       margin: 8px 0;
+      word-break: break-word;
+    }
+
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 12px 0 18px 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
     }
 
     table.data-table {
       width: 100%;
       border-collapse: collapse;
-      margin: 12px 0 18px 0;
       font-size: 12px;
+      min-width: 580px;
     }
 
     table.data-table th {
@@ -207,6 +225,10 @@
       border-bottom: 1px solid var(--border);
       color: var(--text);
       vertical-align: top;
+    }
+
+    table.data-table tr:last-child td {
+      border-bottom: none;
     }
 
     table.data-table tr:nth-child(even) td {
@@ -240,14 +262,15 @@
       align-items: center;
       position: relative;
       margin-top: 10px;
+      gap: 8px;
     }
 
     .flow-step {
       background: white;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px;
-      width: 30%;
+      padding: 12px;
+      flex: 1;
       text-align: center;
       box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
@@ -275,6 +298,7 @@
       font-size: 18px;
       color: #94A3B8;
       font-weight: bold;
+      padding: 0 4px;
     }
 
     .footer-bar {
@@ -286,13 +310,15 @@
       align-items: center;
       font-size: 11px;
       color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
     .print-btn {
       background: var(--primary);
       color: white;
       border: none;
-      padding: 8px 18px;
+      padding: 10px 20px;
       border-radius: 8px;
       font-weight: 700;
       cursor: pointer;
@@ -300,10 +326,79 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 2px 4px rgba(217, 119, 6, 0.3);
+      box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);
+      transition: all 0.2s ease;
     }
 
-    .print-btn:hover { background: var(--primary-dark); }
+    .print-btn:hover { 
+      background: var(--primary-dark); 
+      transform: translateY(-1px);
+    }
+
+    /* RESPONSIVE MEDIA QUERIES */
+    @media (max-width: 768px) {
+      .page {
+        margin: 0;
+        padding: 20px 16px;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .header-bar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .doc-meta {
+        text-align: left;
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .flow-steps {
+        flex-direction: column;
+      }
+
+      .flow-step {
+        width: 100%;
+      }
+
+      .flow-arrow {
+        transform: rotate(90deg);
+        padding: 4px 0;
+      }
+
+      .hero-banner {
+        padding: 16px;
+      }
+
+      .hero-banner h2 {
+        font-size: 15px;
+      }
+
+      .footer-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .logo-area h1 {
+        font-size: 22px;
+      }
+      .badge-status {
+        font-size: 10.5px;
+        padding: 4px 10px;
+      }
+      .print-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -315,16 +410,16 @@
         <h1>Pulse<span>Track</span></h1>
         <p>Enterprise Multi-Unit Dal Mill Management Platform</p>
       </div>
-      <div style="text-align: right;">
+      <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
         <span class="badge-status">● Client Deliverable</span>
-        <div class="doc-meta" style="margin-top: 6px;">
+        <div class="doc-meta">
           <strong>System Overview & Implementation Report</strong>
           Version 1.2 · Prepared for Mill Management & Stakeholders
         </div>
       </div>
     </div>
 
-    <div class="no-print" style="margin-bottom: 20px; text-align: right;">
+    <div class="no-print" style="margin-bottom: 20px; display: flex; justify-content: flex-end;">
       <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
     </div>
 
@@ -419,36 +514,38 @@
       PulseTrack seeds the exact equipment and storage configuration mapped from the plant floor layout sheets:
     </p>
 
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Unit</th>
-          <th>Silo Count</th>
-          <th>Equipment / Silo Categories Mapped</th>
-          <th>Milling Stages Covered</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>Unit 02</strong></td>
-          <td><strong>41 Silos</strong></td>
-          <td>Heating Stock (1–2), Kaacha Tur, Machine Clean (1–2), Adkan, Single Oil (1–7), Double Oil (1–4), Chunni (1–2), Tukadi, Fatka, Sortex, Rejection (1–3), Sakla No, Dryer</td>
-          <td>Full multi-pass de-husking, conditioning, oil polishing & color sorting</td>
-        </tr>
-        <tr>
-          <td><strong>Unit 03</strong></td>
-          <td><strong>23 Silos</strong></td>
-          <td>Kaacha Tur (1–3), Chunni, Polish Dal (1–2), Heating Stock, Single Oil, Single Role Dal (1–4), Kora, Fatka Kora, Kaacha Dal, Tukada Chilka, Return Gota, Non Sortex, Rejection</td>
-          <td>Primary milling, grading, secondary splitting & recovery lines</td>
-        </tr>
-        <tr>
-          <td><strong>Unit 01</strong></td>
-          <td><strong>5 Silos</strong></td>
-          <td>Raw Intake Silo, Processing Silos, Main Dal Silo, By-product Bins</td>
-          <td>Pilot line & bulk receiving terminal</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Unit</th>
+            <th>Silo Count</th>
+            <th>Equipment / Silo Categories Mapped</th>
+            <th>Milling Stages Covered</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Unit 02</strong></td>
+            <td><strong>41 Silos</strong></td>
+            <td>Heating Stock (1–2), Kaacha Tur, Machine Clean (1–2), Adkan, Single Oil (1–7), Double Oil (1–4), Chunni (1–2), Tukadi, Fatka, Sortex, Rejection (1–3), Sakla No, Dryer</td>
+            <td>Full multi-pass de-husking, conditioning, oil polishing & color sorting</td>
+          </tr>
+          <tr>
+            <td><strong>Unit 03</strong></td>
+            <td><strong>23 Silos</strong></td>
+            <td>Kaacha Tur (1–3), Chunni, Polish Dal (1–2), Heating Stock, Single Oil, Single Role Dal (1–4), Kora, Fatka Kora, Kaacha Dal, Tukada Chilka, Return Gota, Non Sortex, Rejection</td>
+            <td>Primary milling, grading, secondary splitting & recovery lines</td>
+          </tr>
+          <tr>
+            <td><strong>Unit 01</strong></td>
+            <td><strong>5 Silos</strong></td>
+            <td>Raw Intake Silo, Processing Silos, Main Dal Silo, By-product Bins</td>
+            <td>Pilot line & bulk receiving terminal</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <div class="page-break"></div>
 
@@ -483,47 +580,49 @@
     <!-- Section 4: Mobile & Web Application Features -->
     <h3 class="section-title">4. Core Screen Matrix & Capabilities</h3>
 
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Screen / Module</th>
-          <th>User Role</th>
-          <th>Key Functionality & Benefits</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>Supervisor Command Center</strong></td>
-          <td>Supervisor</td>
-          <td>Total factory stock in tons, live capacity gauges, idle silo alerts (&gt;8h), pending lab exceptions, and recent audit activity stream.</td>
-        </tr>
-        <tr>
-          <td><strong>Operator Dashboard</strong></td>
-          <td>Operator</td>
-          <td>Horizontal quick-glance silo cards with idle durations, live operational stock, and pending lab batches.</td>
-        </tr>
-        <tr>
-          <td><strong>Lab Yield Entry</strong></td>
-          <td>Operator / Lab</td>
-          <td>Byproduct-first entry (Split % & Husk %), live tonnage calculation cards per destination silo, color-coded stream badges.</td>
-        </tr>
-        <tr>
-          <td><strong>Production Transfer</strong></td>
-          <td>Operator</td>
-          <td>Source and destination silo selectors, live moisture preview banner (Gross → Deduction → Net weight).</td>
-        </tr>
-        <tr>
-          <td><strong>Silo List & Detail</strong></td>
-          <td>Both</td>
-          <td>Real-time fill percentages, metric tonnage, formatted idle times, and complete historical transaction ledger.</td>
-        </tr>
-        <tr>
-          <td><strong>By-Products & Dispatch</strong></td>
-          <td>Operator</td>
-          <td>Bagging counts & cumulative totals for Husk, Powder (Chunni), and Broken (Tukda); finished goods truck dispatches.</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Screen / Module</th>
+            <th>User Role</th>
+            <th>Key Functionality & Benefits</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Supervisor Command Center</strong></td>
+            <td>Supervisor</td>
+            <td>Total factory stock in tons, live capacity gauges, idle silo alerts (&gt;8h), pending lab exceptions, and recent audit activity stream.</td>
+          </tr>
+          <tr>
+            <td><strong>Operator Dashboard</strong></td>
+            <td>Operator</td>
+            <td>Horizontal quick-glance silo cards with idle durations, live operational stock, and pending lab batches.</td>
+          </tr>
+          <tr>
+            <td><strong>Lab Yield Entry</strong></td>
+            <td>Operator / Lab</td>
+            <td>Byproduct-first entry (Split % & Husk %), live tonnage calculation cards per destination silo, color-coded stream badges.</td>
+          </tr>
+          <tr>
+            <td><strong>Production Transfer</strong></td>
+            <td>Operator</td>
+            <td>Source and destination silo selectors, live moisture preview banner (Gross → Deduction → Net weight).</td>
+          </tr>
+          <tr>
+            <td><strong>Silo List & Detail</strong></td>
+            <td>Both</td>
+            <td>Real-time fill percentages, metric tonnage, formatted idle times, and complete historical transaction ledger.</td>
+          </tr>
+          <tr>
+            <td><strong>By-Products & Dispatch</strong></td>
+            <td>Operator</td>
+            <td>Bagging counts & cumulative totals for Husk, Powder (Chunni), and Broken (Tukda); finished goods truck dispatches.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <!-- Section 5: Verification & Quality Assurance -->
     <h3 class="section-title">5. Quality Assurance & Audit Results</h3>
