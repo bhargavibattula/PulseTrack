@@ -4,7 +4,12 @@ import RootNavigator from './src/navigation/RootNavigator';
 import './global.css';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { Manrope_400Regular, Manrope_600SemiBold, Manrope_700Bold, Manrope_800ExtraBold } from '@expo-google-fonts/manrope';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, LogBox } from 'react-native';
+
+LogBox.ignoreLogs([
+  'Cannot connect to Expo CLI',
+  'Require cycle:',
+]);
 
 export default function App() {
   const [fontsLoaded] = useFonts({
