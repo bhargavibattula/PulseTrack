@@ -15,8 +15,14 @@ export default function ConfigurationScreen() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const load = useCallback(() => {
-    api.get('/configuration/TARGET_BASE_MOISTURE').then((res) => setCurrent(res.data.data));
+  const load = useCallback(async () => {
+    try {
+      const res = await api.get('/configuration/TARGET_BASE_MOISTURE');
+      setCurrent(res.data.data);
+      setError(null);
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
   }, []);
 
   useFocusEffect(

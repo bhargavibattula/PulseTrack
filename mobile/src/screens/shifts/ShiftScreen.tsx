@@ -19,8 +19,14 @@ export default function ShiftScreen() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const load = useCallback(() => {
-    api.get('/shifts').then((res) => setShifts(res.data.data));
+  const load = useCallback(async () => {
+    try {
+      const res = await api.get('/shifts');
+      setShifts(res.data.data || []);
+      setError(null);
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
   }, []);
 
   useFocusEffect(

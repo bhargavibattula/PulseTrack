@@ -15,6 +15,7 @@ router.use(requireAuth);
 
 router.get('/pending-lab', requireRole('SUPERVISOR', 'OPERATOR'), getPendingLab);
 router.get('/transfers', requireRole('SUPERVISOR', 'OPERATOR'), listTransfers);
+router.get('/transfers/:id', requireRole('SUPERVISOR', 'OPERATOR'), getTransferById);
 router.get('/', requireRole('SUPERVISOR', 'OPERATOR'), listTransfers);
 router.get('/:id', requireRole('SUPERVISOR', 'OPERATOR'), getTransferById);
 router.post('/transfer', requireRole('SUPERVISOR', 'OPERATOR'), createTransfer);
