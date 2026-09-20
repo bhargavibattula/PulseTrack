@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, RefreshControl, TextInput } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import ScreenContainer from '../../components/feedback/ScreenContainer';
 import StatusBadge from '../../components/status/StatusBadge';
@@ -10,6 +10,7 @@ import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 export default function SiloListScreen({ navigation }: any) {
   const [silos, setSilos] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState('');
 
   const loadSilos = useCallback(async () => {
     try {
@@ -28,21 +29,76 @@ export default function SiloListScreen({ navigation }: any) {
     }, [loadSilos])
   );
 
+  // Filter silos by search query
+  const filteredSilos = search.trim()
+    ? silos.filter(
+        (s) =>
+          (s.name || '').toLowerCase().includes(search.toLowerCase()) ||
+          (s.code || '').toLowerCase().includes(search.toLowerCase())
+      )
+    : silos;
+
+  // Group summary stats
+  const fillingCount = silos.filter(s => s.status === 'FILLING').length;
+  const fullCount = silos.filter(s => s.status === 'FULL').length;
+  const emptyCount = silos.filter(s => s.status === 'EMPTY').length;
+
   return (
     <ScreenContainer scroll={false}>
       <Text className="text-3xl font-displayExtraBold text-stone-900 mb-1">Silos & Locations</Text>
-      <Text className="text-stone-500 font-sans text-sm mb-5">Storage capacity, stock and idle time</Text>
+      <Text className="text-stone-500 font-sans text-sm mb-4">Storage capacity, stock and idle time</Text>
+
+      {/* Summary chips */}
+      <View className="flex-row space-x-2 mb-4">
+        <View className="bg-amber-500/10 px-3 py-1.5 rounded-xl">
+          <Text className="text-amber-700 font-sansBold text-xs">{silos.length} Total</Text>
+        </View>
+        <View className="bg-emerald-500/10 px-3 py-1.5 rounded-xl">
+          <Text className="text-emerald-700 font-sansBold text-xs">{fillingCount} Filling</Text>
+        </View>
+        <View className="bg-red-500/10 px-3 py-1.5 rounded-xl">
+          <Text className="text-red-700 font-sansBold text-xs">{fullCount} Full</Text>
+        </View>
+        <View className="bg-stone-200/60 px-3 py-1.5 rounded-xl">
+          <Text className="text-stone-600 font-sansBold text-xs">{emptyCount} Empty</Text>
+        </View>
+      </View>
+
+      {/* Search bar */}
+      <View className="flex-row items-center bg-white border border-stone-200 rounded-2xl px-4 py-3 mb-4">
+        <Feather name="search" size={16} color="#a8a29e" />
+        <TextInput
+          className="flex-1 ml-2.5 font-sans text-stone-900 text-sm"
+          placeholder="Search silos by name or code..."
+          placeholderTextColor="#a8a29e"
+          value={search}
+          onChangeText={setSearch}
+          autoCorrect={false}
+        />
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <Feather name="x-circle" size={16} color="#a8a29e" />
+          </TouchableOpacity>
+        )}
+      </View>
       
       <FlatList
-        data={silos}
+        data={filteredSilos}
         keyExtractor={(item) => item._id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadSilos(); }} />}
         ListEmptyComponent={
-          <EmptyState 
-            iconName="silo" 
-            title="No silos configured" 
-            subtitle="There are no silos tracked in this unit yet." 
-          />
+          search.trim() ? (
+            <View className="bg-white p-8 rounded-2xl items-center justify-center border border-dashed border-stone-200 mt-4">
+              <Feather name="search" size={28} color="#d6d3d1" />
+              <Text className="text-stone-400 font-sans mt-2">No silos match "{search}"</Text>
+            </View>
+          ) : (
+            <EmptyState 
+              iconName="silo" 
+              title="No silos configured" 
+              subtitle="There are no silos tracked in this unit yet." 
+            />
+          )
         }
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -55,8 +111,8 @@ export default function SiloListScreen({ navigation }: any) {
                   <MaterialCommunityIcons name="silo" size={22} color="#F59E0B" />
                 </View>
                 <View className="flex-1">
-                  <Text className="font-sansBold text-lg text-stone-900">{item.name}</Text>
-                  <Text className="text-stone-400 font-sans text-xs">Code: {item.code}</Text>
+                  <Text className="font-sansBold text-lg text-stone-900" numberOfLines={1}>{item.name}</Text>
+                  <Text className="text-stone-400 font-sans text-xs">{item.code} • {item.unit?.name || ''}</Text>
                 </View>
               </View>
               <StatusBadge status={item.status || 'EMPTY'} />

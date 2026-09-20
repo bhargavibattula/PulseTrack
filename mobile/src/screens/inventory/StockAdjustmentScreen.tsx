@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Alert, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import NumericInput from '../../components/inputs/NumericInput';
 import TextField from '../../components/inputs/TextField';
+import SearchablePicker from '../../components/inputs/SearchablePicker';
 import PrimaryButton from '../../components/feedback/PrimaryButton';
 import ErrorBanner from '../../components/feedback/ErrorBanner';
 import { api, apiErrorMessage } from '../../services/api';
@@ -145,37 +146,25 @@ export default function StockAdjustmentScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Location Selection */}
-        <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Target Location / Silo</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5 flex-row space-x-2">
-          {locations.map((loc) => (
-            <TouchableOpacity
-              key={loc._id}
-              onPress={() => setSelectedLocation(loc._id)}
-              className={`px-4 py-2.5 rounded-2xl border ${selectedLocation === loc._id ? 'bg-stone-900 border-stone-900' : 'bg-stone-100 border-stone-200'}`}
-            >
-              <Text className={`font-sansBold text-xs ${selectedLocation === loc._id ? 'text-white' : 'text-stone-700'}`}>
-                {loc.name} ({loc.code})
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {/* Location — Searchable Picker */}
+        <SearchablePicker
+          label="Target Location / Silo"
+          items={locations}
+          selectedId={selectedLocation}
+          onSelect={setSelectedLocation}
+          placeholder="Search silo by name or code..."
+          accentColor="#292524"
+        />
 
-        {/* Material Selection */}
-        <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Material</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5 flex-row space-x-2">
-          {materials.map((mat) => (
-            <TouchableOpacity
-              key={mat._id}
-              onPress={() => setSelectedMaterial(mat._id)}
-              className={`px-4 py-2.5 rounded-2xl border ${selectedMaterial === mat._id ? 'bg-amber-500 border-amber-500' : 'bg-stone-100 border-stone-200'}`}
-            >
-              <Text className={`font-sansBold text-xs ${selectedMaterial === mat._id ? 'text-white' : 'text-stone-700'}`}>
-                {mat.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {/* Material — Searchable Picker */}
+        <SearchablePicker
+          label="Material"
+          items={materials}
+          selectedId={selectedMaterial}
+          onSelect={setSelectedMaterial}
+          placeholder="Search material..."
+          accentColor="#F59E0B"
+        />
 
         {/* Quantity */}
         <NumericInput
