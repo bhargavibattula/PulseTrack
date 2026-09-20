@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, Alert, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import NumericInput from '../../components/inputs/NumericInput';
+import SearchablePicker from '../../components/inputs/SearchablePicker';
 import PrimaryButton from '../../components/feedback/PrimaryButton';
 import ErrorBanner from '../../components/feedback/ErrorBanner';
 import { api, apiErrorMessage } from '../../services/api';
@@ -246,22 +247,16 @@ export default function YieldScreen({ route, navigation }: any) {
             onChangeText={setSplitYield}
             placeholder="10"
           />
-          <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2 mt-3">Destination Silo</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row space-x-2">
-            {locations.map((loc) => (
-              <TouchableOpacity
-                key={loc._id}
-                onPress={() => setSplitDestLoc(loc._id)}
-                className={`px-3 py-2 rounded-xl border mr-1 ${splitDestLoc === loc._id ? 'bg-blue-500 border-blue-500' : 'bg-stone-100 border-stone-200'}`}
-              >
-                <Text className={`font-sansBold text-[11px] ${splitDestLoc === loc._id ? 'text-white' : 'text-stone-700'}`}>
-                  {loc.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <SearchablePicker
+            label="Destination Silo"
+            items={locations}
+            selectedId={splitDestLoc}
+            onSelect={setSplitDestLoc}
+            placeholder="Search silo..."
+            accentColor="#3B82F6"
+          />
           {splitPct > 0 && processingQty > 0 && (
-            <View className="bg-blue-50 mt-3 p-3 rounded-xl border border-blue-100">
+            <View className="bg-blue-50 p-3 rounded-xl border border-blue-100">
               <Text className="font-sansBold text-blue-700 text-sm">
                 → {calculations.splitQty >= 1000 ? `${(calculations.splitQty / 1000).toFixed(2)} tons` : `${calculations.splitQty} kg`} to {getLocName(splitDestLoc)}
               </Text>
@@ -279,22 +274,16 @@ export default function YieldScreen({ route, navigation }: any) {
             onChangeText={setHuskYield}
             placeholder="3"
           />
-          <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2 mt-3">Destination Silo</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row space-x-2">
-            {locations.map((loc) => (
-              <TouchableOpacity
-                key={loc._id}
-                onPress={() => setHuskDestLoc(loc._id)}
-                className={`px-3 py-2 rounded-xl border mr-1 ${huskDestLoc === loc._id ? 'bg-orange-500 border-orange-500' : 'bg-stone-100 border-stone-200'}`}
-              >
-                <Text className={`font-sansBold text-[11px] ${huskDestLoc === loc._id ? 'text-white' : 'text-stone-700'}`}>
-                  {loc.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <SearchablePicker
+            label="Destination Silo"
+            items={locations}
+            selectedId={huskDestLoc}
+            onSelect={setHuskDestLoc}
+            placeholder="Search silo..."
+            accentColor="#F97316"
+          />
           {huskPct > 0 && processingQty > 0 && (
-            <View className="bg-orange-50 mt-3 p-3 rounded-xl border border-orange-100">
+            <View className="bg-orange-50 p-3 rounded-xl border border-orange-100">
               <Text className="font-sansBold text-orange-700 text-sm">
                 → {calculations.huskQty >= 1000 ? `${(calculations.huskQty / 1000).toFixed(2)} tons` : `${calculations.huskQty} kg`} to {getLocName(huskDestLoc)}
               </Text>
@@ -310,22 +299,16 @@ export default function YieldScreen({ route, navigation }: any) {
               <Text className="font-sansBold text-emerald-700 text-xs">{mainYieldPct}%</Text>
             </View>
           </View>
-          <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Destination Silo</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row space-x-2">
-            {locations.map((loc) => (
-              <TouchableOpacity
-                key={loc._id}
-                onPress={() => setMainDestLoc(loc._id)}
-                className={`px-3 py-2 rounded-xl border mr-1 ${mainDestLoc === loc._id ? 'bg-emerald-500 border-emerald-500' : 'bg-stone-100 border-stone-200'}`}
-              >
-                <Text className={`font-sansBold text-[11px] ${mainDestLoc === loc._id ? 'text-white' : 'text-stone-700'}`}>
-                  {loc.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <SearchablePicker
+            label="Destination Silo"
+            items={locations}
+            selectedId={mainDestLoc}
+            onSelect={setMainDestLoc}
+            placeholder="Search silo..."
+            accentColor="#10b981"
+          />
           {mainYieldPct > 0 && processingQty > 0 && (
-            <View className="bg-emerald-100 mt-3 p-3 rounded-xl border border-emerald-200">
+            <View className="bg-emerald-100 p-3 rounded-xl border border-emerald-200">
               <Text className="font-displayBold text-emerald-800 text-base">
                 → {calculations.mainQty >= 1000 ? `${(calculations.mainQty / 1000).toFixed(2)} tons` : `${calculations.mainQty} kg`} to {getLocName(mainDestLoc)}
               </Text>

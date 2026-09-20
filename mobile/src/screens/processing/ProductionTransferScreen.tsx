@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, Alert, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import NumericInput from '../../components/inputs/NumericInput';
+import SearchablePicker from '../../components/inputs/SearchablePicker';
 import PrimaryButton from '../../components/feedback/PrimaryButton';
 import ErrorBanner from '../../components/feedback/ErrorBanner';
 import { api, apiErrorMessage } from '../../services/api';
@@ -41,7 +42,6 @@ export default function ProductionTransferScreen({ navigation }: any) {
         if (data.processes?.length > 0) setSelectedProcess(data.processes[0]._id);
         if (data.locations?.length > 0) {
           setSelectedLocation(data.locations[0]._id);
-          if (data.locations.length > 1) setDestinationLocation(data.locations[1]._id);
         }
       } catch (err) {
         setError(apiErrorMessage(err));
@@ -51,6 +51,11 @@ export default function ProductionTransferScreen({ navigation }: any) {
     }
     loadMasterData();
   }, []);
+
+  // Filter destination locations (exclude selected source)
+  const destinationLocations = useMemo(() => {
+    return locations.filter(loc => loc._id !== selectedLocation);
+  }, [locations, selectedLocation]);
 
   // Live moisture preview calculation
   const moisturePreview = useMemo(() => {
@@ -161,37 +166,25 @@ export default function ProductionTransferScreen({ navigation }: any) {
           ))}
         </ScrollView>
 
-        {/* Source Location Selection */}
-        <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Source Silo (From)</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5 flex-row space-x-2">
-          {locations.map((loc) => (
-            <TouchableOpacity
-              key={loc._id}
-              onPress={() => setSelectedLocation(loc._id)}
-              className={`px-4 py-2.5 rounded-2xl border mr-2 ${selectedLocation === loc._id ? 'bg-stone-900 border-stone-900' : 'bg-stone-100 border-stone-200'}`}
-            >
-              <Text className={`font-sansBold text-xs ${selectedLocation === loc._id ? 'text-white' : 'text-stone-700'}`}>
-                {loc.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {/* Source Location — Searchable Picker */}
+        <SearchablePicker
+          label="Source Silo (From)"
+          items={locations}
+          selectedId={selectedLocation}
+          onSelect={setSelectedLocation}
+          placeholder="Search silo by name or code..."
+          accentColor="#292524"
+        />
 
-        {/* Destination Location Selection */}
-        <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Destination Silo (To) — Optional</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5 flex-row space-x-2">
-          {locations.filter(loc => loc._id !== selectedLocation).map((loc) => (
-            <TouchableOpacity
-              key={loc._id}
-              onPress={() => setDestinationLocation(loc._id)}
-              className={`px-4 py-2.5 rounded-2xl border mr-2 ${destinationLocation === loc._id ? 'bg-emerald-500 border-emerald-500' : 'bg-stone-100 border-stone-200'}`}
-            >
-              <Text className={`font-sansBold text-xs ${destinationLocation === loc._id ? 'text-white' : 'text-stone-700'}`}>
-                {loc.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {/* Destination Location — Searchable Picker */}
+        <SearchablePicker
+          label="Destination Silo (To) — Optional"
+          items={destinationLocations}
+          selectedId={destinationLocation}
+          onSelect={setDestinationLocation}
+          placeholder="Search destination silo..."
+          accentColor="#10b981"
+        />
 
         {/* Shift Selection */}
         <Text className="text-stone-500 text-[13px] font-sansBold uppercase tracking-wide mb-2">Shift</Text>
