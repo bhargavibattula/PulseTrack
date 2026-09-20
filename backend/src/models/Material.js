@@ -4,7 +4,7 @@ const materialSchema = new mongoose.Schema(
   {
     code: { type: String, required: true, unique: true },
     name: { type: String, required: true },
-    type: { type: String, required: true }, // e.g., 'RAW', 'GOTA', 'FINISHED', 'BYPRODUCT'
+    type: { type: String, required: true }, // e.g., 'RAW', 'INTERMEDIATE', 'GOTA', 'FINISHED', 'BYPRODUCT'
     unitOfMeasure: { type: String, required: true, default: 'KG' },
     isActive: { type: Boolean, default: true },
   },

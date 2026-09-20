@@ -3,6 +3,11 @@
  * Populates Units, Locations/Silos (real factory layouts), Materials, Shifts,
  * Processes, Users, and initial stock transactions.
  *
+ * Silo layouts sourced from client's handwritten sheets:
+ *   - Unit NO-09 (Sheet 1) → System Unit 1
+ *   - Unit NO-02 (Sheet 2) → System Unit 2
+ *   - Unit NO-3  (Sheet 3) → System Unit 3
+ *
  * Run with: npm run seed
  */
 require('dotenv').config();
@@ -45,25 +50,42 @@ async function seed() {
 
   console.log('[seed] Creating Materials...');
   const materials = await Material.insertMany([
+    // Raw materials
     { code: 'RAW_TOOR', name: 'Raw Toor Whole (Kaacha Tur)', type: 'RAW', unitOfMeasure: 'KG', isActive: true },
+    { code: 'HEATING_STOCK', name: 'Heating Stock', type: 'RAW', unitOfMeasure: 'KG', isActive: true },
+    { code: 'KORA', name: 'Kora (Unprocessed)', type: 'RAW', unitOfMeasure: 'KG', isActive: true },
+    { code: 'MACHIN_CLEAN', name: 'Machin Clean', type: 'RAW', unitOfMeasure: 'KG', isActive: true },
+    // Intermediate processing states
+    { code: 'ADKAN', name: 'Adkan', type: 'INTERMEDIATE', unitOfMeasure: 'KG', isActive: true },
+    { code: 'SAKLA_NO', name: 'Sakla No', type: 'INTERMEDIATE', unitOfMeasure: 'KG', isActive: true },
+    { code: 'PANAV', name: 'Panav', type: 'INTERMEDIATE', unitOfMeasure: 'KG', isActive: true },
+    { code: 'DRY_WATER_TANK', name: 'Dry Water Tank', type: 'INTERMEDIATE', unitOfMeasure: 'KG', isActive: true },
+    // Finished products
     { code: 'MAIN_DAL', name: 'Main Toor Dal (Grade A)', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
     { code: 'SPLIT_DAL', name: 'Split / Broken Dal', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
-    { code: 'HUSK', name: 'Toor Husk (Chunni/Bhusa)', type: 'BYPRODUCT', unitOfMeasure: 'KG', isActive: true },
-    { code: 'FATKA', name: 'Fatka / Unpolished Dal', type: 'GOTA', unitOfMeasure: 'KG', isActive: true },
     { code: 'POLISH_DAL', name: 'Polish Dal', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
     { code: 'SINGLE_OIL', name: 'Single Oil (Singaul Oil)', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
     { code: 'DOUBLE_OIL', name: 'Double Oil', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
-    { code: 'KORA', name: 'Kora (Unprocessed)', type: 'RAW', unitOfMeasure: 'KG', isActive: true },
-    { code: 'TUKADA', name: 'Tukada (Broken Pieces)', type: 'BYPRODUCT', unitOfMeasure: 'KG', isActive: true },
-    { code: 'CHILKA', name: 'Chilka (Skin Flakes)', type: 'BYPRODUCT', unitOfMeasure: 'KG', isActive: true },
     { code: 'SINGLE_ROLE_DAL', name: 'Single Role Dal', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
-    { code: 'GOTA', name: 'Gota (Return)', type: 'RAW', unitOfMeasure: 'KG', isActive: true },
-    { code: 'REJECTION', name: 'Rejection / Waste', type: 'BYPRODUCT', unitOfMeasure: 'KG', isActive: true },
-    { code: 'NON_SORTEX', name: 'Non Sortex', type: 'BYPRODUCT', unitOfMeasure: 'KG', isActive: true },
+    { code: 'FAST_ROLE_DAL', name: 'Fast Role Dal', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
     { code: 'SAWLA_NO_DAL', name: 'Sawla No Dal', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
     { code: 'KATHI_DAL', name: 'Kathi Dal', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
+    { code: 'KACHI_DAL', name: 'Kachi Dal', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
+    { code: 'FRESH_DAL_OIL', name: 'Fresh Dal with Oil', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
+    { code: 'CHILKA_DAL', name: 'Chilka Dal', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
+    { code: 'BOLD_3NO', name: 'Bold (3 No)', type: 'FINISHED', unitOfMeasure: 'KG', isActive: true },
+    // Gota / Fatka types
+    { code: 'FATKA', name: 'Fatka / Unpolished Dal', type: 'GOTA', unitOfMeasure: 'KG', isActive: true },
     { code: 'FATKA_KORA', name: 'Fatka Kora', type: 'GOTA', unitOfMeasure: 'KG', isActive: true },
-    { code: 'HEATING_STOCK', name: 'Heating Stock', type: 'RAW', unitOfMeasure: 'KG', isActive: true }
+    { code: 'GOTA', name: 'Gota (Return)', type: 'RAW', unitOfMeasure: 'KG', isActive: true },
+    { code: 'LOCKAT_FATKA', name: 'Lockat Fatka', type: 'GOTA', unitOfMeasure: 'KG', isActive: true },
+    // Byproducts
+    { code: 'HUSK', name: 'Toor Husk (Chunni/Bhusa)', type: 'BYPRODUCT', unitOfMeasure: 'KG', isActive: true },
+    { code: 'TUKADA', name: 'Tukada / Tukadi (Broken Pieces)', type: 'BYPRODUCT', unitOfMeasure: 'KG', isActive: true },
+    { code: 'CHILKA', name: 'Chilka (Skin Flakes)', type: 'BYPRODUCT', unitOfMeasure: 'KG', isActive: true },
+    { code: 'REJECTION', name: 'Rejection / Waste', type: 'BYPRODUCT', unitOfMeasure: 'KG', isActive: true },
+    { code: 'NON_SORTEX', name: 'Non Sortex', type: 'BYPRODUCT', unitOfMeasure: 'KG', isActive: true },
+    { code: 'CHATTI', name: 'Chatti', type: 'BYPRODUCT', unitOfMeasure: 'KG', isActive: true },
   ]);
 
   console.log('[seed] Creating Shifts...');
@@ -73,8 +95,163 @@ async function seed() {
     { code: 'SHIFT_NIGHT', name: 'Night Shift (22:00 - 06:00)', startTime: '22:00', endTime: '06:00', isActive: true }
   ]);
 
-  // ─── UNIT 3 SILO LAYOUT (from handwritten sheet) ──────────────────────────
-  console.log('[seed] Creating Locations — Unit 3 (from factory layout)...');
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UNIT 1 SILO LAYOUT — from handwritten Sheet 1 (Unit NO-09)
+  // 40 silos + 1 yard, mapped silo-by-silo from client's factory drawing
+  // ═══════════════════════════════════════════════════════════════════════════
+  console.log('[seed] Creating Locations — Unit 1 (from Sheet 1 / Unit NO-09)...');
+  const unit1Silos = [
+    // Row 1: Silos 01–06
+    { code: 'U1_SILO_01', name: 'Silo 01 - Heating Stock', type: 'SILO', capacityKg: 50000 },
+    { code: 'U1_SILO_02', name: 'Silo 02 - Heating Stock', type: 'SILO', capacityKg: 50000 },
+    { code: 'U1_SILO_03', name: 'Silo 03 - Kaacha Tur', type: 'SILO', capacityKg: 50000 },
+    { code: 'U1_SILO_04', name: 'Silo 04 - Machin Clean', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_05', name: 'Silo 05 - Machin Clean', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_06', name: 'Silo 06 - Adkan', type: 'SILO', capacityKg: 40000 },
+    // Row 2: Silos 07–13 (Singaul Oil bank)
+    { code: 'U1_SILO_07', name: 'Silo 07 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_08', name: 'Silo 08 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_09', name: 'Silo 09 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_10', name: 'Silo 10 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_11', name: 'Silo 11 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_12', name: 'Silo 12 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_13', name: 'Silo 13 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
+    // Row 3: Silos 14–16
+    { code: 'U1_SILO_14', name: 'Silo 14 - Dry Water Tank', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_15', name: 'Silo 15 - Kaacha Sakla No', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_16', name: 'Silo 16 - Dryer Sakla No', type: 'SILO', capacityKg: 40000 },
+    // Row 4: Silo 17 (Return)
+    { code: 'U1_SILO_17', name: 'Silo 17 - Return Gota', type: 'SILO', capacityKg: 30000 },
+    // Row 5: Silos 18–21 (Double Oil bank)
+    { code: 'U1_SILO_18', name: 'Silo 18 - Double Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_19', name: 'Silo 19 - Double Oil (Outside)', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_20', name: 'Silo 20 - Double Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_21', name: 'Silo 21 - Double Oil', type: 'SILO', capacityKg: 40000 },
+    // Row 6: Silos 22–25
+    { code: 'U1_SILO_22', name: 'Silo 22 - Dryer to Tank (Outside)', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_23', name: 'Silo 23 - Dryer to Tank (Outside)', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_24', name: 'Silo 24 - Sakla No Gota', type: 'SILO', capacityKg: 30000 },
+    { code: 'U1_SILO_25', name: 'Silo 25 - Heating Dryer', type: 'SILO', capacityKg: 50000 },
+    // Row 7: Silos 26–27 (Rejection)
+    { code: 'U1_SILO_26', name: 'Silo 26 - Rejection', type: 'SILO', capacityKg: 30000 },
+    { code: 'U1_SILO_27', name: 'Silo 27 - Rejection', type: 'SILO', capacityKg: 30000 },
+    // Row 8: Silos 28–31 (Input staging)
+    { code: 'U1_SILO_28', name: 'Silo 28 - Sakla No Input', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_29', name: 'Silo 29 - Tukadi Input', type: 'SILO', capacityKg: 30000 },
+    { code: 'U1_SILO_30', name: 'Silo 30 - Empty', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_31', name: 'Silo 31 - Fatka Input', type: 'SILO', capacityKg: 40000 },
+    // Row 9: Silos 32–36 (Polish / Store)
+    { code: 'U1_SILO_32', name: 'Silo 32 - Sawla No Polish', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_33', name: 'Silo 33 - Fatka Polish', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_34', name: 'Silo 34 - Fatka Store', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_35', name: 'Silo 35 - Sawla No Store', type: 'SILO', capacityKg: 40000 },
+    { code: 'U1_SILO_36', name: 'Silo 36 - Tukadi Store', type: 'SILO', capacityKg: 30000 },
+    // Row 10: Silos 37–40 (Byproducts / Returns)
+    { code: 'U1_SILO_37', name: 'Silo 37 - Chunni', type: 'SILO', capacityKg: 30000 },
+    { code: 'U1_SILO_38', name: 'Silo 38 - Chunni', type: 'SILO', capacityKg: 30000 },
+    { code: 'U1_SILO_39', name: 'Silo 39 - Return Sawla No', type: 'SILO', capacityKg: 30000 },
+    { code: 'U1_SILO_40', name: 'Silo 40 - Return Gota', type: 'SILO', capacityKg: 30000 },
+    // Yard area
+    { code: 'U1_GREEN_REJ', name: 'Green Rejection', type: 'YARD', capacityKg: 20000 },
+  ].map(s => ({ ...s, unit: units[0]._id, isActive: true, lastActivityAt: new Date(Date.now() - Math.random() * 48 * 3600 * 1000) }));
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UNIT 2 SILO LAYOUT — from handwritten Sheet 2 (Unit NO-02)
+  // Two sections on the sheet: main processing area (01–42) and extended
+  // area (43–80+). Mapped silo-by-silo from client's factory drawing.
+  // ═══════════════════════════════════════════════════════════════════════════
+  console.log('[seed] Creating Locations — Unit 2 (from Sheet 2 / Unit NO-02)...');
+  const unit2Silos = [
+    // ── Main processing area (01–42) ──
+    { code: 'U2_SILO_01', name: 'Silo 01 - Kaacha Tur', type: 'SILO', capacityKg: 50000 },
+    { code: 'U2_SILO_02', name: 'Silo 02 - Kaacha Tur', type: 'SILO', capacityKg: 50000 },
+    { code: 'U2_SILO_03', name: 'Silo 03 - Kaacha Tur', type: 'SILO', capacityKg: 50000 },
+    { code: 'U2_SILO_04', name: 'Silo 04 - Kachi Dal', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_05', name: 'Silo 05 - Kathi Dal', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_06', name: 'Silo 06 - Heating Store', type: 'SILO', capacityKg: 50000 },
+    { code: 'U2_SILO_07', name: 'Silo 07 - Heating Store', type: 'SILO', capacityKg: 50000 },
+    { code: 'U2_SILO_08', name: 'Silo 08 - Heating Store', type: 'SILO', capacityKg: 50000 },
+    { code: 'U2_SILO_09', name: 'Silo 09 - Sawla No Dal Fresh', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_10', name: 'Silo 10 - Chilka Dal', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_11', name: 'Silo 11 - Single Oil Stock', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_12', name: 'Silo 12 - Single Oil Stock', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_13', name: 'Silo 13 - Fast Role (Panav Board)', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_14', name: 'Silo 14 - Single Role Storage', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_15', name: 'Silo 15 - Sawla No Dal', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_16', name: 'Silo 16 - Single Role', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_17', name: 'Silo 17 - Fast Role (Not Touching)', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_18', name: 'Silo 18 - Single Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_19', name: 'Silo 19 - Single Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_20', name: 'Silo 20 - Single Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_21', name: 'Silo 21 - Single Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_22', name: 'Silo 22 - Single Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_23', name: 'Silo 23 - Single Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_24', name: 'Silo 24 - Double Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_25', name: 'Silo 25 - Double Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_26', name: 'Silo 26 - Double Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_27', name: 'Silo 27 - Double Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_28', name: 'Silo 28 - Double Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_29', name: 'Silo 29 - Double Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_30', name: 'Silo 30 - Sakla No (Return Joint)', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_31', name: 'Silo 31 - Sakla No Return', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_32', name: 'Silo 32 - Sawla No Dal', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_33', name: 'Silo 33 - Sawla No Dal', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_34', name: 'Silo 34 - Fresh Dal with Oil', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_35', name: 'Silo 35 - Tukadi', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_36', name: 'Silo 36 - Tukadi', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_37', name: 'Silo 37 - Tukadi (Off Connection)', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_38', name: 'Silo 38 - Tukadi', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_39', name: 'Silo 39 - Chilka', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_40', name: 'Silo 40 - Chunni', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_41', name: 'Silo 41 - Adkan', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_42', name: 'Silo 42 - Empty', type: 'SILO', capacityKg: 40000 },
+    // ── Extended area (43–80) ──
+    { code: 'U2_SILO_43', name: 'Silo 43 - Empty', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_44', name: 'Silo 44 - Empty', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_45', name: 'Silo 45 - Empty', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_46', name: 'Silo 46 - Lockat Fatka', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_47', name: 'Silo 47 - Kora 3 No', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_48', name: 'Silo 48 - Sortex', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_49', name: 'Silo 49 - D Mark Sakla No', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_50', name: 'Silo 50 - D Mark Fatka', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_51', name: 'Silo 51 - Sawla No Dal', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_52', name: 'Silo 52 - Fatka (Kora 3 No)', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_53', name: 'Silo 53 - Sawla No (2 No Sortex)', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_54', name: 'Silo 54 - Fatka', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_55', name: 'Silo 55 - Non Sortex', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_56', name: 'Silo 56 - Non Sortex', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_57', name: 'Silo 57 - 3 No Bold', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_58', name: 'Silo 58 - 3 No', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_59', name: 'Silo 59 - Tukadi', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_60', name: 'Silo 60 - Fatka', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_61', name: 'Silo 61 - Fatka', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_62', name: 'Silo 62 - Fatka', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_63', name: 'Silo 63 - Return', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_64', name: 'Silo 64 - Tukadi', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_65', name: 'Silo 65 - Rejection', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_66', name: 'Silo 66 - Rejection', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_67', name: 'Silo 67 - Rejection', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_68', name: 'Silo 68 - Chatti', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_69', name: 'Silo 69 - Chatti', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_70', name: 'Silo 70 - Chatti', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_71', name: 'Silo 71 - Sawla No', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_72', name: 'Silo 72 - Kora 3 No', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_73', name: 'Silo 73 - Empty', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_74', name: 'Silo 74 - Tukadi (3 No)', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_75', name: 'Silo 75 - 3 No', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_76', name: 'Silo 76 - Empty (Destoner)', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_77', name: 'Silo 77 - Empty', type: 'SILO', capacityKg: 40000 },
+    { code: 'U2_SILO_78', name: 'Silo 78 - Tukadi Rejection', type: 'SILO', capacityKg: 30000 },
+    { code: 'U2_SILO_80', name: 'Silo 80 - Fresh Tukadi', type: 'SILO', capacityKg: 30000 },
+    // Special locations
+    { code: 'U2_AIR_LOCK', name: 'Air Lock', type: 'SILO', capacityKg: 20000 },
+  ].map(s => ({ ...s, unit: units[1]._id, isActive: true, lastActivityAt: new Date(Date.now() - Math.random() * 48 * 3600 * 1000) }));
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UNIT 3 SILO LAYOUT — from handwritten Sheet 3 (Unit NO-3) + Excel
+  // 23 silos, mapped silo-by-silo from client's factory drawing & spreadsheet
+  // ═══════════════════════════════════════════════════════════════════════════
+  console.log('[seed] Creating Locations — Unit 3 (from Sheet 3 / Unit NO-3)...');
   const unit3Silos = [
     // Row 1: Silos 01-06
     { code: 'U3_SILO_01', name: 'Silo 01 - Kaacha Tur', type: 'SILO', capacityKg: 50000 },
@@ -95,7 +272,7 @@ async function seed() {
     { code: 'U3_SILO_14', name: 'Silo 14 - Single Role Dal', type: 'SILO', capacityKg: 40000 },
     { code: 'U3_SILO_15', name: 'Silo 15 - Single Role Dal', type: 'SILO', capacityKg: 40000 },
     { code: 'U3_SILO_16', name: 'Silo 16 - Kaacha Dal', type: 'SILO', capacityKg: 40000 },
-    { code: 'U3_SILO_17', name: 'Silo 17 - Tukada Chilka', type: 'SILO', capacityKg: 30000 },
+    { code: 'U3_SILO_17', name: 'Silo 17 - Tukdi Chilka', type: 'SILO', capacityKg: 30000 },
     { code: 'U3_SILO_18', name: 'Silo 18 - Empty', type: 'SILO', capacityKg: 40000 },
     // Row 4: Silos 23-19
     { code: 'U3_SILO_23', name: 'Silo 23 - Return Gota', type: 'SILO', capacityKg: 30000 },
@@ -104,64 +281,6 @@ async function seed() {
     { code: 'U3_SILO_20', name: 'Silo 20 - Non Sortex', type: 'SILO', capacityKg: 30000 },
     { code: 'U3_SILO_19', name: 'Silo 19 - Rejection', type: 'SILO', capacityKg: 30000 },
   ].map(s => ({ ...s, unit: units[2]._id, isActive: true, lastActivityAt: new Date(Date.now() - Math.random() * 48 * 3600 * 1000) }));
-
-  // ─── UNIT 2 SILO LAYOUT (from handwritten sheet — Unit No-09 and Unit No-02) ─
-  console.log('[seed] Creating Locations — Unit 2 (from factory layout)...');
-  const unit2Silos = [
-    // Unit 09 section (top of sheet)
-    { code: 'U2_SILO_01', name: 'Silo 01 - Heating Stock', type: 'SILO', capacityKg: 50000 },
-    { code: 'U2_SILO_02', name: 'Silo 02 - Heating Stock', type: 'SILO', capacityKg: 50000 },
-    { code: 'U2_SILO_03', name: 'Silo 03 - Kaacha Tur', type: 'SILO', capacityKg: 50000 },
-    { code: 'U2_SILO_04', name: 'Silo 04 - Machin Clean', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_05', name: 'Silo 05 - Machin Clean', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_06', name: 'Silo 06 - Adkan', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_07', name: 'Silo 07 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_08', name: 'Silo 08 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_09', name: 'Silo 09 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_10', name: 'Silo 10 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_11', name: 'Silo 11 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_12', name: 'Silo 12 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_13', name: 'Silo 13 - Singaul Oil', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_14', name: 'Silo 14 - Dry Water Tank', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_15', name: 'Silo 15 - Kaacha Sakla No', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_16', name: 'Silo 16 - Dryer Sakla No', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_17', name: 'Silo 17 - Return Gota', type: 'SILO', capacityKg: 30000 },
-    { code: 'U2_SILO_18', name: 'Silo 18 - Double Oil', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_19', name: 'Silo 19 - Double Oil (Outside)', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_20', name: 'Silo 20 - Double Oil', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_21', name: 'Silo 21 - Double Oil', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_22', name: 'Silo 22 - Dryer to Tank (Outside)', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_23', name: 'Silo 23 - Dryer to Tank (Outside)', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_24', name: 'Silo 24 - Sakla No Gota', type: 'SILO', capacityKg: 30000 },
-    { code: 'U2_SILO_25', name: 'Silo 25 - Heating Dryer', type: 'SILO', capacityKg: 50000 },
-    { code: 'U2_SILO_26', name: 'Silo 26 - Rejection', type: 'SILO', capacityKg: 30000 },
-    { code: 'U2_SILO_27', name: 'Silo 27 - Rejection', type: 'SILO', capacityKg: 30000 },
-    { code: 'U2_SILO_28', name: 'Silo 28 - Sakla No Input', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_29', name: 'Silo 29 - Tukadi Input', type: 'SILO', capacityKg: 30000 },
-    { code: 'U2_SILO_30', name: 'Silo 30 - Empty', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_31', name: 'Silo 31 - Fatka Input', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_32', name: 'Silo 32 - Sawla No Polish', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_33', name: 'Silo 33 - Fatka Polish', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_34', name: 'Silo 34 - Fatka Store', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_35', name: 'Silo 35 - Sawla No Store', type: 'SILO', capacityKg: 40000 },
-    { code: 'U2_SILO_36', name: 'Silo 36 - Tukadi Store', type: 'SILO', capacityKg: 30000 },
-    { code: 'U2_SILO_37', name: 'Silo 37 - Chunni', type: 'SILO', capacityKg: 30000 },
-    { code: 'U2_SILO_38', name: 'Silo 38 - Chunni', type: 'SILO', capacityKg: 30000 },
-    { code: 'U2_SILO_39', name: 'Silo 39 - Return Sawla No', type: 'SILO', capacityKg: 30000 },
-    { code: 'U2_SILO_40', name: 'Silo 40 - Return Gota', type: 'SILO', capacityKg: 30000 },
-    // Green Rejection
-    { code: 'U2_GREEN_REJ', name: 'Green Rejection', type: 'YARD', capacityKg: 20000 },
-  ].map(s => ({ ...s, unit: units[1]._id, isActive: true, lastActivityAt: new Date(Date.now() - Math.random() * 48 * 3600 * 1000) }));
-
-  // ─── UNIT 1 SILO LAYOUT (generic / existing) ─────────────────────────────
-  console.log('[seed] Creating Locations — Unit 1 (primary processing)...');
-  const unit1Silos = [
-    { code: 'RAW_SILO_1_UNIT_1', name: 'Raw Silo 1', type: 'SILO', capacityKg: 50000 },
-    { code: 'RAW_SILO_2_UNIT_1', name: 'Raw Silo 2', type: 'SILO', capacityKg: 50000 },
-    { code: 'FIN_SILO_8_UNIT_1', name: 'Finished Silo 8', type: 'SILO', capacityKg: 40000 },
-    { code: 'SPLIT_BIN_1_UNIT_1', name: 'Split Bin 1', type: 'SILO', capacityKg: 20000 },
-    { code: 'HUSK_YARD_UNIT_1', name: 'Husk Collection Yard', type: 'YARD', capacityKg: 30000 },
-  ].map(s => ({ ...s, unit: units[0]._id, isActive: true, lastActivityAt: new Date(Date.now() - Math.random() * 24 * 3600 * 1000) }));
 
   const allLocations = [...unit1Silos, ...unit2Silos, ...unit3Silos];
   const createdLocations = await Location.insertMany(allLocations);
@@ -242,12 +361,13 @@ async function seed() {
   });
 
   console.log('[seed] Seeding Initial Stock Transactions for Unit 1...');
-  const u1RawSilo = createdLocations.find(l => l.code === 'RAW_SILO_1_UNIT_1');
-  const u1FinSilo = createdLocations.find(l => l.code === 'FIN_SILO_8_UNIT_1');
-  const u1SplitBin = createdLocations.find(l => l.code === 'SPLIT_BIN_1_UNIT_1');
+  // Use real Unit 1 silo codes that match the factory layout
+  const u1RawSilo = createdLocations.find(l => l.code === 'U1_SILO_03');       // Kaacha Tur
+  const u1FinSilo = createdLocations.find(l => l.code === 'U1_SILO_07');       // Singaul Oil (finished)
+  const u1SplitBin = createdLocations.find(l => l.code === 'U1_SILO_37');      // Chunni (byproduct)
   const rawMat = materials.find(m => m.code === 'RAW_TOOR');
-  const mainDalMat = materials.find(m => m.code === 'MAIN_DAL');
-  const splitMat = materials.find(m => m.code === 'SPLIT_DAL');
+  const mainDalMat = materials.find(m => m.code === 'SINGLE_OIL');
+  const splitMat = materials.find(m => m.code === 'HUSK');
 
   await StockTransaction.insertMany([
     {
@@ -293,8 +413,8 @@ async function seed() {
     unit: units[0]._id,
     shift: shifts[0]._id,
     process: createdProcesses[0]._id,
-    sourceLocation: u1RawSilo._id,
-    destinationLocation: u1FinSilo._id,
+    sourceLocation: u1RawSilo._id,       // Silo 03 - Kaacha Tur
+    destinationLocation: u1FinSilo._id,   // Silo 07 - Singaul Oil
     processingQty: 30000,
     inputMoisture: 13,
     adjustedInputQty: 29100,
@@ -365,6 +485,9 @@ async function seed() {
   console.log('✅ SEED COMPLETED SUCCESSFULLY!');
   console.log('=========================================');
   console.log(`Seeded: ${units.length} units, ${createdLocations.length} locations/silos, ${materials.length} materials`);
+  console.log(`  Unit 1: ${unit1Silos.length} locations (from Sheet 1 / Unit NO-09)`);
+  console.log(`  Unit 2: ${unit2Silos.length} locations (from Sheet 2 / Unit NO-02)`);
+  console.log(`  Unit 3: ${unit3Silos.length} locations (from Sheet 3 / Unit NO-3)`);
   console.log('Login credentials:');
   console.log('  Supervisor U1: supervisor.unit_1@toordal.test / password123');
   console.log('  Operator   U1: operator.unit_1@toordal.test / password123');
