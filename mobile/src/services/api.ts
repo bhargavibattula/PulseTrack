@@ -2,9 +2,11 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 
-// Automatically detect host computer IP in Expo Go, fallback to current Wi-Fi IP
-const host = Constants.expoConfig?.hostUri?.split(':')[0] || '192.168.1.71';
-export const API_BASE_URL = `http://${host}:4000/api/v1`;
+// Production URL from environment variable (.env → EXPO_PUBLIC_API_URL).
+// Falls back to local dev server detection via expo-constants for Expo Go development.
+const devHost = Constants.expoConfig?.hostUri?.split(':')[0] || '192.168.1.71';
+export const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL || `http://${devHost}:4000/api/v1`;
 
 const ACCESS_TOKEN_KEY = 'toor_dal_access_token';
 const REFRESH_TOKEN_KEY = 'toor_dal_refresh_token';
@@ -26,7 +28,8 @@ export const tokenStorage = {
   },
 };
 
-export const api = axios.create({ baseURL: API_BASE_URL, timeout: 15000 });
+// Timeout raised to 30s to accommodate Render free-tier cold starts (~15-30s).
+export const api = axios.create({ baseURL: API_BASE_URL, timeout: 30000 });
 
 api.interceptors.request.use(async (config) => {
   const token = await tokenStorage.getAccessToken();
