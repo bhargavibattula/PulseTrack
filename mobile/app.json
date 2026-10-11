@@ -29,6 +29,12 @@
       "expo-font",
       "expo-secure-store",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "61ab5f90-9186-434a-ae62-ae285065dcd9"
+      }
+    },
+    "owner": "bhargavitej"
   }
 }
