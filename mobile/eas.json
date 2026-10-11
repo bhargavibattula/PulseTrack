@@ -9,12 +9,15 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://pulsetrack-gbv2.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://pulsetrack-gbv2.onrender.com/api/v1"
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://pulsetrack-gbv2.onrender.com/api/v1"
       }
     }
   },

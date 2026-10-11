@@ -5,8 +5,9 @@ import Constants from 'expo-constants';
 // Production URL from environment variable (.env → EXPO_PUBLIC_API_URL).
 // Falls back to local dev server detection via expo-constants for Expo Go development.
 const devHost = Constants.expoConfig?.hostUri?.split(':')[0] || '192.168.1.71';
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || `http://${devHost}:4000/api/v1`;
+const rawUrl = process.env.EXPO_PUBLIC_API_URL || `http://${devHost}:4000/api/v1`;
+const trimmedUrl = rawUrl.replace(/\/+$/, '');
+export const API_BASE_URL = trimmedUrl.endsWith('/api/v1') ? trimmedUrl : `${trimmedUrl}/api/v1`;
 
 const ACCESS_TOKEN_KEY = 'toor_dal_access_token';
 const REFRESH_TOKEN_KEY = 'toor_dal_refresh_token';
